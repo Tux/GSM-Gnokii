@@ -1,8 +1,14 @@
+ChangeLog
+README
+MANIFEST
+Makefile.PL
 Gnokii.pm
 Gnokii.xs
-Makefile.PL
-MANIFEST
 perlobject.map
+typemap
 ppport.h
 test.pl
-typemap
+t/00_pod.t
+t/01_pod.t
+xt/00_perlversion.t
+examples/kgnokii
