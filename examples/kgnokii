@@ -1,0 +1,12 @@
+#!/pro/bin/perl
+
+use strict;
+use warnings;
+use autodie;
+
+use Data::Peek;
+use GSM::Gnokii;
+use Tk;
+
+my $gsm = GSM::Gnokii->new ()->connect;
+my $pb  = $gsm->ReadPhonebook ("ME", 1, 0);
