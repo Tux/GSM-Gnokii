@@ -1,0 +1,8 @@
+Gnokii.pm
+Gnokii.xs
+Makefile.PL
+MANIFEST
+perlobject.map
+ppport.h
+test.pl
+typemap

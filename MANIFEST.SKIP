@@ -1,0 +1,13 @@
+\.git
+\.releaserc
+\.aspell\.local\.pws
+blib/
+cover_db/
+sandbox/
+Makefile
+MANIFEST.SKIP
+pm_to_blib
+\.tar
+\.tar\.gz
+\.tgz
+\.tbz
