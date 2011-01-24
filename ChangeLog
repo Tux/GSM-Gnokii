@@ -1,0 +1,15 @@
+0.03  24-01-2011
+    - Make it into a more complete and robust distribution
+
+0.02  24-01-2011
+    - Ongoing work-in-progress in converting all GSMD::Gnokii
+      functionality. Also extending existing code, adding new
+      methods and reformatting all code to mach my style  for
+      easier reading and for better maintainability.
+
+      This first phase is about all Get*** methods
+    - First check-in in git
+
+0.01  21-01-2011
+    - Start analizing GSMD::Gnokii and finding why connection
+      is failing.
