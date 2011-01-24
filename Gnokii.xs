@@ -88,6 +88,8 @@ static gn_data			*data;
 static FILE			*logfile     = NULL;
 static char			*configfile  = NULL;
 static char			*configmodel = NULL;
+static int			opt_v = 0;
+#undef DEBUG_MODULE
 
 gn_memory_status SIMMemoryStatus   = {GN_MT_SM, 0, 0};
 gn_memory_status PhoneMemoryStatus = {GN_MT_ME, 0, 0};
@@ -112,7 +114,7 @@ static int businit (void)
 {
     gn_error err;
 
-    warn ("Starting businit ...\n");
+    if (opt_v) warn ("Starting businit ...\n");
     if ((err = gn_lib_phoneprofile_load_from_file (configfile, configmodel, &state)) != GN_ERR_NONE) {
 	warn ("%s\n", gn_error_print (err));
 	if (configfile)
@@ -122,7 +124,7 @@ static int businit (void)
 	return 2;
 	}
 
-    warn ("Phone profile loaded\n");
+    if (opt_v) warn ("Phone profile loaded\n");
     /* register cleanup function */
     atexit (busterminate);
     /* signal(SIGINT, bussignal); */
@@ -132,7 +134,7 @@ static int businit (void)
 	warn (_("WARNING: cannot open logfile, logs will be directed to stderr\n"));
 #endif
 
-    warn ("Opening phone ...\n");
+    if (opt_v) warn ("Opening phone ...\n");
     if ((err = gn_lib_phone_open (state)) != GN_ERR_NONE) {
 	warn ("%s\n", gn_error_print (err));
 	return 2;
@@ -155,7 +157,7 @@ Initialize (self)
   PPCODE:
     int		err;
 
-    warn ("Initialise ()\n");
+    if (opt_v) warn ("Initialise ()\n");
 
     if (gn_lib_init () != GN_ERR_NONE)
 	croak (_("Failed to initialize libgnokii.\n"));
@@ -225,7 +227,7 @@ ReadPhonebook (self, mem_type, start, end)
     int			mt, i, j;
     AV			*pb;
 
-    warn ("ReadPhonebook (%s, %d, %d)\n", mem_type, start, end);
+    if (opt_v) warn ("ReadPhonebook (%s, %d, %d)\n", mem_type, start, end);
 
     clear_data ();
 
@@ -256,7 +258,7 @@ ReadPhonebook (self, mem_type, start, end)
 	memset (entry->name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
 	memset (entry->number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
 
-	warn ("Reading %s Entry %d\n", mem_type, i);
+	if (opt_v) warn ("Reading %s Entry %d\n", mem_type, i);
 
 	entry->location       = i;
 	entry->caller_group   = i;
@@ -314,14 +316,14 @@ ReadPhonebook (self, mem_type, start, end)
 		switch (entry->subentries[j].entry_type) {
 		    /* From _raw ... */
 		    case GN_PHONEBOOK_ENTRY_Birthday:
-			sprintf (str, "%4d-%02d-%02d", 
+			sprintf (str, "%4d-%02d-%02d",
 			    entry->subentries[j].data.date.year, entry->subentries[j].data.date.month,
 			    entry->subentries[j].data.date.day);
 			hv_puts (abe, "birthday",     str);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Date:
-			sprintf (str, "%4d-%02d-%02d %02d:%02d:%02d", 
+			sprintf (str, "%4d-%02d-%02d %02d:%02d:%02d",
 			    entry->subentries[j].data.date.year,   entry->subentries[j].data.date.month,
 			    entry->subentries[j].data.date.day,    entry->subentries[j].data.date.hour,
 			    entry->subentries[j].data.date.minute, entry->subentries[j].data.date.second);
@@ -351,32 +353,32 @@ ReadPhonebook (self, mem_type, start, end)
 			    case GN_PHONEBOOK_NUMBER_Home:
 				hv_puts (abe, "tel_home",    entry->subentries[j].data.number);
 				break;
-			
+
 			    case GN_PHONEBOOK_NUMBER_Mobile:
 				hv_puts (abe, "tel_cell",    entry->subentries[j].data.number);
 				break;
-			
+
 			    case GN_PHONEBOOK_NUMBER_Fax:
 				hv_puts (abe, "tel_fax",     entry->subentries[j].data.number);
 				break;
-			
+
 			    case GN_PHONEBOOK_NUMBER_Work:
 				hv_puts (abe, "tel_work",    entry->subentries[j].data.number);
 				break;
-			
+
 			    case GN_PHONEBOOK_NUMBER_None:
 				if (strcmp (entry->subentries[j].data.number, entry->number))
 				    hv_puts (abe, "tel_none", entry->subentries[j].data.number);
 				break;
-			
+
 			    case GN_PHONEBOOK_NUMBER_Common:
 				hv_puts (abe, "tel_common",  entry->subentries[j].data.number);
 				break;
-			
+
 			    case GN_PHONEBOOK_NUMBER_General:
 				hv_puts (abe, "tel_general", entry->subentries[j].data.number);
 				break;
-			
+
 			    default:
 				sprintf (str, "tel_%03d_%03d",
 				    entry->subentries[j].number_type, entry->subentries[j].id);
@@ -384,7 +386,7 @@ ReadPhonebook (self, mem_type, start, end)
 				break;
 			    }
 			break;
-			
+
 		    case GN_PHONEBOOK_ENTRY_URL:
 			hv_puts (abe, "url", entry->subentries[j].data.number);
 			break;
@@ -421,7 +423,7 @@ GetSMS (self, mem_type, index)
     gn_sms_folder_list	*folderlist;
     int			i;
 
-    warn ("GetSMS (%s, %d)\n", mem_type, index);
+    if (opt_v) warn ("GetSMS (%s, %d)\n", mem_type, index);
 
     clear_data ();
     Newxz (message, 1, gn_sms);
@@ -547,7 +549,7 @@ GetDateTime (self)
   PPCODE:
     gn_timestamp	date_time;
 
-    warn ("GetDateTime ()\n");
+    if (opt_v) warn ("GetDateTime ()\n");
 
     clear_data ();
     data->datetime = &date_time;
@@ -599,8 +601,8 @@ GetSpeedDial (self, location)
   PPCODE:
     gn_speed_dial	*speeddial;
     SV			**ssv;
-    
-    warn ("Get Speed Dial %d\n", location);
+
+    if (opt_v) warn ("Get Speed Dial %d\n", location);
 
     if (location < 0)
 	croak ("Speed dial number should be >= 0\n");
@@ -624,10 +626,10 @@ GetSpeedDial (self, location)
 void
 GetIMEI (self)
     HvObject	*self;
-  
+
   PPCODE:
     char	*imei, *model, *rev, *manufacturer;
-  
+
     Newxz (imei,         64, char);
     Newxz (model,        64, char);
     Newxz (rev,          64, char);
@@ -793,7 +795,7 @@ GetRingtoneList (self)
   PPCODE:
     gn_ringtone_list	ringtone_list;
 
-    warn ("GetRingtoneList ()\n");
+    if (opt_v) warn ("GetRingtoneList ()\n");
 
     clear_data ();
     Zero (&ringtone_list, 1, ringtone_list);
@@ -910,7 +912,7 @@ GetPowerStatus (self)
     gn_battery_unit	batt_units   = GN_BU_Arbitrary;
     HV			*ps          = newHV ();
 
-    warn ("GetPowerStatus ()\n");
+    if (opt_v) warn ("GetPowerStatus ()\n");
 
     clear_data ();
     data->battery_unit  = &batt_units;
@@ -930,7 +932,7 @@ GetMemoryStatus (self)
   PPCODE:
     HV *ms = newHV ();
 
-    warn ("GetMemoryStatus ()\n");
+    if (opt_v) warn ("GetMemoryStatus ()\n");
 
     clear_data ();
     data->memory_status = &SIMMemoryStatus;
@@ -1027,7 +1029,7 @@ GetNetworkInfo (self)
     XSRETURN_UNDEF;
     /* GetNetworkInfo */
 
-int
+void
 GetWapBookmark (self, location)
     HvObject		*self;
     int			location;
@@ -1078,7 +1080,7 @@ GetWapSettings (self, location)
 	default:                       hv_puts (ws, key, "unknown");     break;
 	}
     hv_puts (ws, "security", wapsetting.security ? "yes" : "no");
-    
+
     key = "bearer";
     switch (wapsetting.bearer) {
 	case GN_WAP_BEARER_GSMDATA:    hv_puts (ws, key, "GSM data");    break;
@@ -1087,7 +1089,7 @@ GetWapSettings (self, location)
 	case GN_WAP_BEARER_USSD:       hv_puts (ws, key, "USSD");        break;
 	default:                       hv_puts (ws, key, "unknown");     break;
 	}
-    
+
     key = "gsm_data_auth";
     switch (wapsetting.gsm_data_authentication) {
 	case GN_WAP_AUTH_NORMAL:       hv_puts (ws, key, "normal");      break;
@@ -1297,223 +1299,213 @@ GetProfiles (self, start, end)
     XS_RETURN (pl);
     /* GetProfiles */
 
-int
+void
 SendSMS (self, smshash)
-HvObject *self;
-HV *smshash;
-PREINIT:
-gn_sms *sms;
-SV **value;
-int curpos;
-int input_len;
-CODE:
-{
-        clear_data ();
-        Newxz (sms, 1, gn_sms);
-	curpos = 0;
-        gn_sms_default_submit (sms);
-  	Zero (&(sms->remote.number), 1, sms->remote.number);
-	if ((value = hv_fetch (smshash, "destination", 11, 0)) != NULL)
-	{
-	  memcpy (&(sms->remote.number), SvPV_nolen (*value), sizeof (sms->remote.number) - 1);
-	  if (sms->remote.number[0] == '+')
-	    sms->remote.type = GN_GSM_NUMBER_International;
-	  else
-	    sms->remote.type = GN_GSM_NUMBER_Unknown;
+    HvObject	*self;
+    HV		*smshash;
+
+  PPCODE:
+    gn_sms	sms;
+    SV		**value;
+    int		curpos, err = GN_ERR_NONE;
+    int		input_len;
+
+    if (opt_v) warn ("SendSMS ()\n");
+
+    clear_data ();
+    Zero (&sms, 1, sms);
+    curpos = 0;
+    gn_sms_default_submit (&sms);
+    Zero (&(sms.remote.number), 1, sms.remote.number);
+    if ((value = hv_fetch (smshash, "destination", 11, 0)) == NULL) {
+	hv_puts (self, "ERROR", "Destination must be set in smshash\n");
+	XSRETURN_UNDEF;
 	}
-	else
-	  croak ("Destination must be set in smshash");
+
+    memcpy (&(sms.remote.number), SvPV_nolen (*value), sizeof (sms.remote.number) - 1);
+    if (sms.remote.number[0] == '+')
+	sms.remote.type = GN_GSM_NUMBER_International;
+    else
+	sms.remote.type = GN_GSM_NUMBER_Unknown;
 #ifdef DEBUG_MODULE
-	printf ("Checkpoint1\n");
-#endif
-	value = hv_fetch (smshash, "smscnumber", 10, 0);
-#ifdef DEBUG_MODULE
-	printf ("Just to be sure \n");
+    warn ("SendSMS @ %d\n", __LINE__);
 #endif
 
-	if ((value = hv_fetch (smshash, "smscnumber", 10, 0)) != NULL)
-	{
+    if ((value = hv_fetch (smshash, "smscnumber", 10, 0))) {
 #ifdef DEBUG_MODULE
-	  printf ("smscn != NULL\n");
+	warn ("SendSMS: got smsc: '%s'\n", SvPV_nolen (*value));
 #endif
-	  strncpy (sms->smsc.number, SvPV_nolen (*value), sizeof (sms->smsc.number) - 1);
-	  if (sms->smsc.number[0] == '+')
-	    sms->smsc.type = GN_GSM_NUMBER_International;
-	  else
-	    sms->smsc.type = GN_GSM_NUMBER_Unknown;
+	strncpy (sms.smsc.number, SvPV_nolen (*value), sizeof (sms.smsc.number) - 1);
+	if (sms.smsc.number[0] == '+')
+	    sms.smsc.type = GN_GSM_NUMBER_International;
+	else
+	    sms.smsc.type = GN_GSM_NUMBER_Unknown;
 	}
 #ifdef DEBUG_MODULE
-	else
-	  printf ("No smscn\n");
-	printf ("Checkpoint2\n");
-#endif
-	if ((value = hv_fetch (smshash, "smscindex", 9, 0)) != NULL)
-	{
-	  gn_sms_message_center messagecenter;
+    else
+	warn ("SendSMS: No smscn number\n");
 
-	  Zero (&messagecenter, 1, messagecenter);
-	  messagecenter.id = SvIV (*value);
-	  data->message_center = &messagecenter;
-#ifdef DEBUG_MODULE
-	  printf ("Number: %d\n",data->message_center->id);
+    warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	  if (data->message_center->id < 1 || data->message_center->id > 5)
-	    croak ("Messagecenter index must be between 1 and 5");
+    if ((value = hv_fetch (smshash, "smscindex", 9, 0))) {
+	gn_sms_message_center messagecenter;
+
+	Zero (&messagecenter, 1, messagecenter);
+	messagecenter.id = SvIV (*value);
+	data->message_center = &messagecenter;
 #ifdef DEBUG_MODULE
-	  printf ("Vor SM_F1\n");
+	warn ("SendSMS @ %d: message center number = %d\n", __LINE__, data->message_center->id);
 #endif
-	  if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE)
-	  {
+	if (data->message_center->id < 1 || data->message_center->id > 5) {
+	    hv_puts (self, "ERROR", "Messagecenter index must be between 1 and 5");
+	    XSRETURN_UNDEF;
+	    }
 #ifdef DEBUG_MODULE
-	    printf ("Vor strypu\n");
+	warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	    strcpy (sms->smsc.number, data->message_center->smsc.number);
-	    sms->smsc.type = data->message_center->smsc.type;
-	  }
+	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
 #ifdef DEBUG_MODULE
-	  printf ("Printing number\n");
-	  printf ("Number is: %s\n", sms->smsc.number);
+	    warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	  Safefree (data->message_center);
+	    strcpy (sms.smsc.number, data->message_center->smsc.number);
+	    sms.smsc.type = data->message_center->smsc.type;
+	    }
+#ifdef DEBUG_MODULE
+	warn ("SendSMS @ %d: smsc number = %s\n", __LINE__, sms.smsc.number);
+#endif
 	}
 #ifdef DEBUG_MODULE
-	else
-	  printf ("No index\n");
-	printf ("Checkpoint3\n");
-#endif
-	if ((value = hv_fetch (smshash, "animation", 9, 0)) != NULL)
-	{
-	  char buf[10240];
-	  char *s = buf, *t;
-	  int i;
+    else
+	printf ("No index\n");
 
-	  strcpy (buf, SvPV_nolen (*value));
-	  sms->user_data[curpos].type = GN_SMS_DATA_Animation;
-	  for (i = 0; i < 4; i++)
-	  {
+    warn ("SendSMS @ %d\n", __LINE__);
+#endif
+    if ((value = hv_fetch (smshash, "animation", 9, 0))) {
+	char	buf[10240];
+	char	*s = buf, *t;
+	int	i;
+
+	strcpy (buf, SvPV_nolen (*value));
+	sms.user_data[curpos].type = GN_SMS_DATA_Animation;
+	for (i = 0; i < 4; i++) {
 	    t = strchr (s, ';');
-	    if (t)
-	      *t++ = 0;
-	    croak ("loadbitmap not exported!");
-	    /*loadbitmap (&(sms->user_data[curpos].u.animation[i]), s, i ? GN_BMP_EMSAnimation2 : GN_BMP_EMSAnimation);*/
+	    if (t) *t++ = 0;
+	    hv_puts (self, "ERROR", "loadbitmap not exported!");
+	    XSRETURN_UNDEF;
+	    /*loadbitmap (&(sms.user_data[curpos].u.animation[i]), s, i ? GN_BMP_EMSAnimation2 : GN_BMP_EMSAnimation);*/
 	    s = t;
-	  }
-	  sms->user_data[++curpos].type = GN_SMS_DATA_Animation;
-	  curpos = -1;
+	    }
+	sms.user_data[++curpos].type = GN_SMS_DATA_Animation;
+	curpos = -1;
 	} /* hier kommt ein else bla fuer den ringtonefall */
-	else if ((value = hv_fetch (smshash, "ringtone", 8, 0)) != NULL)
-	{
-	  gn_ringtone ringtone;
-	  gn_raw_data rawdata;
-	  unsigned char buff[512];
-	  char filename[512];
-	  Zero (&ringtone, 1, ringtone);
+    else if ((value = hv_fetch (smshash, "ringtone", 8, 0))) {
+	gn_ringtone	ringtone;
+	gn_raw_data	rawdata;
+	unsigned char	buff[512];
+	char		filename[512];
+	Zero (&ringtone, 1, ringtone);
 
-	  strcpy (filename, SvPV_nolen (*value));
-	  rawdata.data = buff;
-	  rawdata.length = sizeof (buff);
-	  clear_data ();
-	  data->ringtone = &ringtone;
-	  data->raw_data = &rawdata;
-	  sms->user_data[0].type = GN_SMS_DATA_Ringtone;
-	  sms->user_data[1].type = GN_SMS_DATA_None;
-	  RETVAL = gn_file_ringtone_read (filename, &(sms->user_data[0].u.ringtone));
+	strcpy (filename, SvPV_nolen (*value));
+	rawdata.data   = buff;
+	rawdata.length = sizeof (buff);
+	clear_data ();
+	data->ringtone = &ringtone;
+	data->raw_data = &rawdata;
+	sms.user_data[0].type = GN_SMS_DATA_Ringtone;
+	sms.user_data[1].type = GN_SMS_DATA_None;
+	err = gn_file_ringtone_read (filename, &(sms.user_data[0].u.ringtone));
 	}
 #ifdef DEBUG_MODULE
-	printf ("Checkpoint4\n");
+    warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	if ((value = hv_fetch (smshash, "report", 6, 0)) != NULL)
-	  sms->delivery_report = true;
-	/* hier gehts weiter */
-	if ((value = hv_fetch (smshash, "class", 5, 0)) != NULL)
-	{
-	  int class;
+    if ((value = hv_fetch (smshash, "report", 6, 0)))
+	sms.delivery_report = true;
 
-	  class = SvIV (*value);
-	  if ((class >= 0) && (class < 5))
-	    sms->dcs.u.general.m_class = class;
-	  else
-	    croak ("Illegal classvalue");
+    if ((value = hv_fetch (smshash, "class", 5, 0))) {
+	int class;
+
+	class = SvIV (*value);
+	if (class < 0 || class >= 5) {
+	    hv_puts (self, "ERROR", "Illegal classvalue");
+	    XSRETURN_UNDEF;
+	    }
+
+	sms.dcs.u.general.m_class = class;
 	}
 #ifdef DEBUG_MODULE
-	printf ("Checkpoint5\n");
+    warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	if ((value = hv_fetch (smshash, "validity", 8, 0)) != NULL)
-	  sms->validity = SvIV (*value);
+    if ((value = hv_fetch (smshash, "validity", 8, 0)))
+	sms.validity = SvIV (*value);
 #ifdef DEBUG_MODULE
-	printf ("Checkpoint6\n");
+    warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	if ((value = hv_fetch (smshash, "eightbit", 8, 0)) != NULL)
-	{
-	  sms->dcs.u.general.alphabet = GN_SMS_DCS_8bit;
-	  input_len = GN_SMS_8BIT_MAX_LENGTH;
+    if ((value = hv_fetch (smshash, "eightbit", 8, 0))) {
+	sms.dcs.u.general.alphabet = GN_SMS_DCS_8bit;
+	input_len = GN_SMS_8BIT_MAX_LENGTH;
 	}
-	/* this is completely borrowed from gnokii.c */
+
+    /* this is completely borrowed from gnokii.c */
 #ifdef DEBUG_MODULE
-	printf ("Checkpoint7\n");
-	printf ("SMSCNo = %s\n", sms->smsc.number);
+    warn ("SendSMS @ %d : SMSCNo = %s\n", __LINE__, sms.smsc.number);
 #endif
-	if (!sms->smsc.number[0])
-	{
+    if (!sms.smsc.number[0]) {
 #ifdef DEBUG_MODULE
-	  printf ("Nach dem SMSC\n");
+	warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	  Newxz (data->message_center, 1, gn_sms_message_center);
-	  data->message_center->id = 1;
+	Newxz (data->message_center, 1, gn_sms_message_center);
+	data->message_center->id = 1;
 #ifdef DEBUG_MODULE
-	  printf ("Vor SM_F\n");
+	warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	  if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE)
-	  {
+	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
 #ifdef DEBUG_MODULE
-	    printf ("Vor dem strcpy\n");
+	    warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	    strcpy (sms->smsc.number, data->message_center->smsc.number);
-	    sms->smsc.type = data->message_center->smsc.type;
-	  }
+	    strcpy (sms.smsc.number, data->message_center->smsc.number);
+	    sms.smsc.type = data->message_center->smsc.type;
+	    }
 #ifdef DEBUG_MODULE
-	  printf ("Vor dem free\n");
+	warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	  Safefree (data->message_center);
+	Safefree (data->message_center);
 	}
 #ifdef DEBUG_MODULE
-	printf ("Checkpoit8\n");
+    warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	if (!sms->smsc.type)
-	  sms->smsc.type = GN_GSM_NUMBER_Unknown;
+    if (!sms.smsc.type)
+	sms.smsc.type = GN_GSM_NUMBER_Unknown;
 #ifdef DEBUG_MODULE
-	printf ("Checkpoit9\n");
+    warn ("SendSMS @ %d\n", __LINE__);
 #endif
-	if ((value = hv_fetch (smshash, "message", 7, 0)) != NULL)
-	{
-	  memset (sms->user_data[curpos].u.text, 0, GN_SMS_MAX_LENGTH);
-	  strcpy (sms->user_data[curpos].u.text, SvPV_nolen (*value));
-	  sms->user_data[curpos].type = GN_SMS_DATA_Text;
-	  if (!gn_char_def_alphabet (sms->user_data[curpos].u.text))
-	    sms->dcs.u.general.alphabet = GN_SMS_DCS_UCS2;
-	  sms->user_data[++curpos].type = GN_SMS_DATA_None;
+    if ((value = hv_fetch (smshash, "message", 7, 0))) {
+	memset (sms.user_data[curpos].u.text, 0, GN_SMS_MAX_LENGTH);
+	strcpy ((char *)sms.user_data[curpos].u.text, SvPV_nolen (*value));
+	sms.user_data[curpos].type = GN_SMS_DATA_Text;
+	if (!gn_char_def_alphabet (sms.user_data[curpos].u.text))
+	    sms.dcs.u.general.alphabet = GN_SMS_DCS_UCS2;
+	sms.user_data[++curpos].type = GN_SMS_DATA_None;
 	}
-	else
-	{
-	  if (hv_fetch (smshash, "ringtone", 8, 0) == NULL) /* keine nachricht und kein ringone */
-	    croak ("Need a message to send");
+    else {
+	if (hv_fetch (smshash, "ringtone", 8, 0) == NULL) {/* keine nachricht und kein ringone */
+	    hv_puts (self, "ERROR", "Need a message to send");
+	    XSRETURN_UNDEF;
+	    }
 	}
 #ifdef DEBUG_MODULE
-	printf ("Checkpoit10\n");
-	printf ("Curpos %d Message: %s\n", curpos, sms->user_data[curpos - 1].u.text);
+    warn ("SendSMS @ %d: curpos %d, msg: '%s'\n", __LINE__, curpos, sms.user_data[curpos - 1].u.text);
 #endif
-	data->sms = sms;
+    data->sms = &sms;
 #ifdef DEBUG_MODULE
-	printf ("Before send\n");
+    warn ("SendSMS @ %d before send!\n", __LINE__);
 #endif
-	if (RETVAL == GN_ERR_NONE)
-	  RETVAL = gn_sms_send (data, state);
+    if (err == GN_ERR_NONE)
+	err = gn_sms_send (data, state);
 #ifdef DEBUG_MODULE
-	printf ("After send\n");
+    warn ("SendSMS @ %d after send!\n", __LINE__);
 #endif
-}
-OUTPUT:
-        RETVAL
+    ST (0) = sv_2mortal (newSViv (err));
+    XSRETURN (1);
 
 int
 WritePhonebookEntry (self, entryhash)

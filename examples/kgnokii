@@ -10,3 +10,5 @@ use Tk;
 
 my $gsm = GSM::Gnokii->new ()->connect;
 my $pb  = $gsm->ReadPhonebook ("ME", 1, 0);
+
+DDumper $pb;
