@@ -115,7 +115,7 @@ reflect existing values.
 
 Connect to the phone.
 
-=head GetProfiles (start, end)
+=head2 GetProfiles (start, end)
 
 Returns a reference to a list of hashes with profile information, like:
 
@@ -270,7 +270,7 @@ Returns a reference to a list of SMS Center information hashes like:
   recipienttype    => 0,
   recipientnumber  => "",
 
-=head2 GetSMSFolders
+=head2 GetSMSFolderList
 
 Returns a reference to a list of hashes containing SMS Folder info, like:
 
