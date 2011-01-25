@@ -6,9 +6,129 @@ use autodie;
 
 use Data::Peek;
 use GSM::Gnokii;
+use List::Util qw( max );
 use Tk;
+use Tk::BrowseEntry;
 
 my $gsm = GSM::Gnokii->new ()->connect;
-my $pb  = $gsm->ReadPhonebook ("ME", 1, 0);
+my $ns  = $gsm->GetRF ();
+my $ps  = $gsm->GetPowerStatus ();
+my @pb =
+    sort { $a->[2] cmp $b->[2] }
+    map  {
+	my $idx  = $_->{location};
+	my $name = $_->{name};
+	if (my $p = $_->{person}) {
+	    $p->{family_name} && $p->{given_name} and
+		$name = join " " => $p->{given_name}, $p->{family_name};
+	    }
+	my $number = $_->{tel_cell} || $_->{number};
+	[ $idx, $number, $name ];
+	}
+    @{$gsm->ReadPhonebook ("ME", 1, 0) || []};
+#$gsm->disconnect;
 
-DDumper $pb;
+my $mw = MainWindow->new;
+
+my $font = "{DejaVu Sans Mono} 8";
+
+my $f_sig = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -expand => 1);
+my $f_tgt = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -expand => 1);
+my $f_msg = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -expand => 1);
+my $f_btn = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -expand => 1);
+
+my ($t_number, $t_name, $t_entry) = ("number", "name", "");
+$f_tgt->Label (
+    -text		=> "To",
+    -font		=> $font,
+    )->pack (-side => "left", -anchor => "w", -fill => "both", -expand => 1);
+$f_tgt->Entry (
+    -width		=> 13,
+    -textvariable	=> \$t_number,
+    -font		=> $font,
+    )->pack (-side => "left", -anchor => "w", -fill => "both", -expand => 1);
+$f_tgt->Entry (
+    -width		=> 13,
+    -textvariable	=> \$t_name,
+    -font		=> $font,
+    )->pack (-side => "left", -anchor => "w", -fill => "both", -expand => 1);
+my $b = $f_tgt->BrowseEntry (
+    -width		=> 40,
+    -borderwidt		=> 2,
+    -highlightthickness => 0,
+    -autolistwidth	=> 1,
+    -variable		=> \$t_entry,
+    -browse2cmd		=> sub {
+	($t_number, $t_name) = @{$pb[$_[1]]}[1, 2];
+	printf STDERR "%3d: %-13s %-20.20s = %s\n", $_[1], $t_number, $t_name, $t_entry;
+	},
+    -relief		=> "sunken",
+    -font		=> $font,
+    )->pack (-side => "right", -anchor => "e", -fill => "both", -expand => 1);
+
+{   my $maxlen = max map { length $_->[2] } @pb;
+    $_->[3] = sprintf "%3d: %-*s %s", $_->[0], $maxlen, $_->[2], $_->[1] for @pb;
+    }
+$b->insert ("end", $_) for map { $_->[3] } @pb;
+
+my $msg;
+my $status;
+
+my $t = $f_msg->Text (
+    -width		=> 80,
+    -height		=>  2,
+    -wrap		=> "word",
+    -font		=> $font,
+    )->pack (-side => "left",  -anchor => "w", -fill => "both", -expand => 1);
+
+$f_btn->Button (
+    -text		=> "Cancel",
+    -command		=> sub { exit; },
+    )->pack (-side => "left",  -anchor => "w", -fill => "none", -expand => 0);
+my $l_stat = $f_btn->Label (
+    -textvariable	=> \$status,
+    -font		=> $font,
+    -width		=> 40,
+    )->pack (-side => "left",  -anchor => "c", -fill => "both", -expand => 1);
+$f_btn->Button (
+    -text		=> " Send ",
+    -command		=> \&send_msg,
+    )->pack (-side => "right", -anchor => "e", -fill => "none", -expand => 0);
+
+sub send_msg
+{
+    $msg = $t->get ("0.0", "end");
+    $msg =~ s/\s+$//;
+    $msg =~ s/^\s+//;
+    print STDERR "To:  $t_number ($t_name)\nMsg: $msg\n";
+    unless ($t_number =~ m/^\+?[0-9]+$/ and $msg =~ m/^\S/) {
+	$status = "Both number and message needed";
+	$l_stat->configure (-foreground => "Red");
+	return;
+	}
+    my $b8 = ($msg =~ m/^[ -~]+$/) ? 0 : 1;
+    $status = "Connecting ...";
+    $l_stat->configure (-foreground => "Black");
+    $mw->update;
+#   $gsm->connect ();
+    $status = "Sending ...";
+    $mw->update;
+    my $err = $gsm->SendSMS ({
+	destination	=> $t_number,
+	smscindex	=> 1,
+	report		=> 1,
+	eightbit	=> $b8,
+	message		=> $msg,
+	});
+    if (defined $err and $err == 0) {
+	$status = "Message sent";
+	$l_stat->configure (-foreground => "#00a000");
+	}
+    else {
+	$status = $gsm->{ERROR} || "ERROR: ".DPeek $err;
+	$l_stat->configure (-foreground => "#d00000");
+	}
+#   $gsm->disconnect;
+    } # send_msg
+
+MainLoop;
