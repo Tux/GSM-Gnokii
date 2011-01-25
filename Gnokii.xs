@@ -9,6 +9,8 @@
 #include <string.h>
 #include <time.h>
 
+#undef DEBUG_MODULE
+
 #ifndef false
 #  define false 0
 #  endif
@@ -88,8 +90,11 @@ static gn_data			*data;
 static FILE			*logfile     = NULL;
 static char			*configfile  = NULL;
 static char			*configmodel = NULL;
+#ifdef DEBUG_MODULE
+static int			opt_v = 1;
+#else
 static int			opt_v = 0;
-#undef DEBUG_MODULE
+#endif
 
 gn_memory_status SIMMemoryStatus   = {GN_MT_SM, 0, 0};
 gn_memory_status PhoneMemoryStatus = {GN_MT_ME, 0, 0};
@@ -1501,6 +1506,7 @@ SendSMS (self, smshash)
 #endif
     if (err == GN_ERR_NONE)
 	err = gn_sms_send (data, state);
+    hv_puts (self, "ERROR", err == GN_ERR_NONE ? "" : gn_error_print (err));
 #ifdef DEBUG_MODULE
     warn ("SendSMS @ %d after send!\n", __LINE__);
 #endif
