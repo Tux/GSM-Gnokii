@@ -4,17 +4,41 @@ use strict;
 use warnings;
 use autodie;
 
+sub usage
+{
+    my $err = shift and select STDERR;
+    print "usage: $0 [ --verbose=# ] [ --to=recipient ] [ --msg=message ]\n";
+    exit $err;
+    } # usage
+
+use Getopt::Long qw(:config bundling nopermute);
+my $opt_v = 0;
+my $msg   = "";
+my $to    = "";
+GetOptions (
+    "help|?"		=> sub { usage (0); },
+
+    "m|msg|message=s"	=> \$msg,
+    "t|to|recipient=s"	=> \$to,
+    "v|verbose:1"	=> \$opt_v,
+    ) or usage (1);
+
 use Data::Peek;
 use GSM::Gnokii;
 use List::Util qw( max );
 use Tk;
 use Tk::BrowseEntry;
 
+$opt_v and print STDERR "Connecting ...\n";
 my $gsm = GSM::Gnokii->new ()->connect;
+$opt_v and print STDERR "Get signal strength ...\n";
 my $ns  = $gsm->GetRF ();
+$opt_v and print STDERR "Get power status ...\n";
 my $ps  = $gsm->GetPowerStatus ();
+$opt_v and print STDERR "Read phonebook ...\n";
 my @pb =
     sort { $a->[2] cmp $b->[2] }
+    grep { $to ? "@$_" =~ m/$to/i : 1 }
     map  {
 	my $idx  = $_->{location};
 	my $name = $_->{name};
@@ -27,6 +51,17 @@ my @pb =
 	}
     @{$gsm->ReadPhonebook ("ME", 1, 0) || []};
 #$gsm->disconnect;
+
+my $status = "";
+
+if ($msg =~ m/\S/ && @pb == 1) {
+    $opt_v and print STDERR "Sending message ...\n";
+    my $err = send_msg ($pb[0][1], $msg);
+    print "$status\n";
+    exit $err;
+    }
+
+$opt_v and print STDERR "Starting GUI ...\n";
 
 my $mw = MainWindow->new;
 
@@ -71,15 +106,13 @@ my $b = $f_tgt->BrowseEntry (
     }
 $b->insert ("end", $_) for map { $_->[3] } @pb;
 
-my $msg;
-my $status;
-
 my $t = $f_msg->Text (
     -width		=> 80,
     -height		=>  2,
     -wrap		=> "word",
     -font		=> $font,
     )->pack (-side => "left",  -anchor => "w", -fill => "both", -expand => 1);
+$t->insert ("end", $msg);
 
 $f_btn->Button (
     -text		=> "Cancel",
@@ -92,21 +125,21 @@ my $l_stat = $f_btn->Label (
     )->pack (-side => "left",  -anchor => "c", -fill => "both", -expand => 1);
 $f_btn->Button (
     -text		=> " Send ",
-    -command		=> \&send_msg,
+    -command		=> sub { send_msg ($t_number, $t->get ("0.0", "end")) },
     )->pack (-side => "right", -anchor => "e", -fill => "none", -expand => 0);
 
 sub send_msg
 {
-    $msg = $t->get ("0.0", "end");
-    $msg =~ s/\s+$//;
-    $msg =~ s/^\s+//;
-    print STDERR "To:  $t_number ($t_name)\nMsg: $msg\n";
-    unless ($t_number =~ m/^\+?[0-9]+$/ and $msg =~ m/^\S/) {
+    my ($dest, $message) = @_;
+    $message =~ s/\s+$//;
+    $message =~ s/^\s+//;
+    $opt_v and print STDERR "To:  $dest ($t_name)\nMsg: $message\n";
+    unless ($dest =~ m/^\+?[0-9]+$/ and $message =~ m/^\S/) {
 	$status = "Both number and message needed";
 	$l_stat->configure (-foreground => "Red");
 	return;
 	}
-    my $b8 = ($msg =~ m/^[ -~]+$/) ? 0 : 1;
+    my $b8 = ($message =~ m/^[ -~]+$/) ? 0 : 1;
     $status = "Connecting ...";
     $l_stat->configure (-foreground => "Black");
     $mw->update;
@@ -114,11 +147,11 @@ sub send_msg
     $status = "Sending ...";
     $mw->update;
     my $err = $gsm->SendSMS ({
-	destination	=> $t_number,
+	destination	=> $dest,
 	smscindex	=> 1,
 	report		=> 1,
 	eightbit	=> $b8,
-	message		=> $msg,
+	message		=> $message,
 	});
     if (defined $err and $err == 0) {
 	$status = "Message sent";
@@ -129,6 +162,7 @@ sub send_msg
 	$l_stat->configure (-foreground => "#d00000");
 	}
 #   $gsm->disconnect;
+    $err;
     } # send_msg
 
 MainLoop;
