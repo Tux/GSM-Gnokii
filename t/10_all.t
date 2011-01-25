@@ -38,9 +38,9 @@ if (my @me = grep { $_->{name} eq "Merijn GS" } @{$get->{PhoneBookME}}) {
     my $err = $gsm->SendSMS ({
 	destination	=> $me[0]{number},
 	smscindex	=> 1,
-	report	=> 1,
-    #   eightbit	=> 1,
-	message	=> "Sent from perl",
+	report		=> 1,
+	eightbit	=> 1,
+	message		=> "Sent from perl",
 	});
     DDumper ({ err => $err, gsm => $gsm });
     }
