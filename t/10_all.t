@@ -34,12 +34,12 @@ ok (my $get = {
 
 DDumper $get;
 
-if (my @me = grep { $_->{name} eq "Merijn GS" } @{$get->{PhoneBookME}}) {
+if (0) {
     my $err = $gsm->SendSMS ({
-	destination	=> $me[0]{number},
+	destination	=> $ENV{SMS_TEST_TO},
 	smscindex	=> 1,
 	report		=> 1,
-	eightbit	=> 1,
+#	eightbit	=> 1,
 	message		=> "Sent from perl",
 	});
     DDumper ({ err => $err, gsm => $gsm });

@@ -136,30 +136,34 @@ sub send_msg
     $opt_v and print STDERR "To:  $dest ($t_name)\nMsg: $message\n";
     unless ($dest =~ m/^\+?[0-9]+$/ and $message =~ m/^\S/) {
 	$status = "Both number and message needed";
-	$l_stat->configure (-foreground => "Red");
+	$l_stat and $l_stat->configure (-foreground => "Red");
 	return;
 	}
     my $b8 = ($message =~ m/^[ -~]+$/) ? 0 : 1;
     $status = "Connecting ...";
-    $l_stat->configure (-foreground => "Black");
-    $mw->update;
+    if ($l_stat) {
+	$l_stat->configure (-foreground => "Black");
+	$mw->update;
+	}
 #   $gsm->connect ();
     $status = "Sending ...";
-    $mw->update;
+    $l_stat and $mw->update;
     my $err = $gsm->SendSMS ({
 	destination	=> $dest,
-	smscindex	=> 1,
+#	smscindex	=> 1,
+	smscnumber	=> "+31653131313",
 	report		=> 1,
-	eightbit	=> $b8,
+	eightbit	=> 0, # $b8,
 	message		=> $message,
+	validity	=> 173,	# 1 week
 	});
     if (defined $err and $err == 0) {
 	$status = "Message sent";
-	$l_stat->configure (-foreground => "#00a000");
+	$l_stat and $l_stat->configure (-foreground => "#00a000");
 	}
     else {
 	$status = $gsm->{ERROR} || "ERROR: ".DPeek $err;
-	$l_stat->configure (-foreground => "#d00000");
+	$l_stat and $l_stat->configure (-foreground => "#d00000");
 	}
 #   $gsm->disconnect;
     $err;
