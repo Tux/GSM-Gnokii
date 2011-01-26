@@ -88,6 +88,7 @@ provides:
 requires:     
     perl:                5.008004
     Carp:                0
+    Data::Peek:          0.32
 recommends:     
     perl:                5.012003
 configure_requires:

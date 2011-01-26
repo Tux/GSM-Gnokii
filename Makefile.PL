@@ -34,6 +34,7 @@ WriteMakefile (
 			"Config"        => 0,
 			"Test::More"    => 0,
 			"Test::Harness" => 0,
+			"Data::Peek"	=> 0.32,
 			},
     LIBS         => [ "$gnokii_lib -lgnokii" ],
     TYPEMAPS     => [ "perlobject.map" ],
