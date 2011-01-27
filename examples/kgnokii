@@ -150,12 +150,12 @@ sub send_msg
     $l_stat and $mw->update;
     my $err = $gsm->SendSMS ({
 	destination	=> $dest,
-#	smscindex	=> 1,
-	smscnumber	=> "+31653131313",
-	report		=> 1,
-	eightbit	=> 0, # $b8,
+	smscindex	=> 1,
+#	smscnumber	=> "+31653131313",
+#	report		=> 1,
+	eightbit	=> $b8,
 	message		=> $message,
-	validity	=> 173,	# 1 week
+#	validity	=> 173,	# 1 week
 	});
     if (defined $err and $err == 0) {
 	$status = "Message sent";
