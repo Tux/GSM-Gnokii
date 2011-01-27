@@ -266,7 +266,7 @@ Returns a reference to a list of SMS Center information hashes like:
   format           => "Text",
   validity         => "72 hours"
   type             => 145,
-  smscnumber       => "+31612345679",
+  smscnumber       => "+31612345678",
   recipienttype    => 0,
   recipientnumber  => "",
 
@@ -300,15 +300,53 @@ Returns a reference to a hash with the SMS data, like:
   text             => "This is fake data, enjoy!",
   timestamp        => -1,
 
+=head2 $err = SendSMS ({ options })
+
+Sends an SMS, attributes marked with a * are required
+
+  destination      => "+31612345678", # * Recipient phone number
+  message          => "Hello there",  # * Message text (max 160 characters)
+  smscindex        => 1,              # * Index  of the SMS Center to use
+                                      #   or use smscnumber
+  smscnumber       => "+31612345678", #   Number of the SMS Center
+  report           => 1,              #   Delivery report (default off )
+  class            => 0,              #   Class (0..3)    (default undef)
+  eightbit         => 1,              #   Use 8bit data   (default 7bit)
+  validity         => 4320,           #   SMS validity in minutes
+  animation        => ".....",        #   Animation ... (NYT)
+  ringtone         => ".....",        #   Filename with ringtone ... (NYT)
+
+All other attribute are silently ignored.
+
+The return code in C<$err> is
+
+=over 4
+
+=item undef
+
+When undefined, you passed conflicting or illegal options. I this case, it
+is very likely that C<$gsm->{ERROR}> contains an explanation.
+
+=item 0
+
+All is well: message was successfully sent.
+
+=item *
+
+Any other value is the return code from the call that sends the message.
+The value of C<$gsm->{ERROR}> is set accordingy.
+
+=back
+
 =head2 GetNetworkInfo
 
 Returns a reference to a hash with the network information, like:
 
-  cellid           => "b56f",
-  countryname      => "Netherlands",
-  lac              => 1127,
   name             => "KPN",
+  countryname      => "Netherlands",
   networkcode      => "204 08",
+  cellid           => "b56f",
+  lac              => 1127,
 
 =head2 GetRingtoneList
 
@@ -372,6 +410,28 @@ Returns a reference to a hash with WAP bookmark information, like:
   location         => 1,
   name             => "perl",
   url              => "http://p3rl.org",
+
+=head2 GetLogo ({ options })
+
+Return a reference to a hash with Logo information, like:
+
+  text             => "Foo",
+  type             => "text",
+  bitmap           => "...",
+  size             => 64,
+  height           => 8,
+  width            => 8,
+
+Supported options:
+
+  type             => "...",  # text/dealer/op/startup/caller/
+                              #  picture/emspicture/emsanimation
+  callerindex      => 0,      # required for type => "caller". NYI
+
+=head2 PrintError (err)
+
+Prints the string representation of the C<err> value to the current
+STDERR handle.
 
 =head1 MEMORYTYPES
 
