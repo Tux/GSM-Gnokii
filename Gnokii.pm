@@ -79,7 +79,7 @@ sub connect
 {
     my $self = shift;
 
-    $self->{connection}   = $self->Initialize ();
+    $self->{connection}   = $self->_Initialize ();
     $self->{MEMORY_TYPES} = \@MEMORYTYPES;
     $self;
     } # connect
@@ -116,15 +116,35 @@ GSM::Gnokii is a driver module to interface Perl with libgnokii.
 =head1 METHODS
 
 Most data used in below examples is made up and does not necessarily
-reflect existing values.
+reflect existing values. Values like "..." are indicating "some sort
+of data, as my phone did not (yet) yield anything sensible to show.
 
-=head2 new
+If a method returns C<undef>, look if C<$gsm->{ERROR}> contains a string
+which could explain the failure.
 
-...
+=head2 new ({ attributes })
+
+Returns a new instance of C<GSM::Gnokii>. The attributes are optional. If
+attributes are passed, it should be in an anonymous hash. Unknown attributes
+are silently ignored.
+
+=over 4
+
+=item verbose
+
+  verbose          => 1,
+
+Will show on STDERR the entry point of functions called
+
+=back
 
 =head2 connect
 
 Connect to the phone.
+
+=head2 disconnect
+
+Disonnects the phone.
 
 =head2 GetProfiles (start, end)
 
@@ -255,10 +275,30 @@ To get the address book entry to the speed dial, use
 
 Returns a reference to a hash with the IMEI data, like:
 
-  imei             => "345634563456678",
-  manufacturer     => "Nokia",
   model            => "RM-274",
   revision         => "V 07.21",
+  imei             => "345634563456678",
+  manufacturer     => "...",
+
+=head2 GetDisplayStatus
+
+Returns a reference to a hash with the display status, all boolean, like:
+
+  call_in_progress => 0,
+  unknown          => 0,
+  unread_SMS       => 0,
+  voice_call       => 0,
+  fax_call_active  => 0,
+  data_call_active => 0,
+  keyboard_lock    => 0,
+  sms_storage_full => 0,
+
+=head2 GetSecurity
+
+Returns a reference to a hash with the security information, like:
+
+  status           => "Nothing to enter",
+  security_code    => "...",
 
 =head2 GetRF
 
@@ -443,6 +483,25 @@ Supported options:
 
 Prints the string representation of the C<err> value to the current
 STDERR handle.
+
+
+=head2 ActivateWapSetting
+=head2 CreateSMSFolder
+=head2 DeleteAllTodos
+=head2 DeleteSMS
+=head2 DeleteWapBookmark
+=head2 GetTodo
+=head2 ReadPhonebook
+=head2 SetAlarm
+=head2 SetDateTime
+=head2 SetSpeedDial
+=head2 WriteCalendarNote
+=head2 WritePhonebookEntry
+=head2 WriteTodo
+=head2 WriteWapBookmark
+=head2 WriteWapSetting
+=head2 constant
+=head2 version
 
 =head1 MEMORYTYPES
 

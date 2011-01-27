@@ -23,6 +23,8 @@
 #  define gn_bool int
 #  endif
 
+#define unless(e) if (!(e))
+
 #define _hvstore(hash,key,sv) (void)hv_store (hash, key, strlen (key), sv, 0)
 #define hv_puts(hash,key,str) _hvstore (hash, key, newSVpv ((char *)(str), 0))
 #define hv_putS(hash,key,s,l) _hvstore (hash, key, newSVpv ((char *)(s),   l))
@@ -95,6 +97,7 @@ static int			opt_v = 1;
 #else
 static int			opt_v = 0;
 #endif
+static gn_error			op_error = 0;
 
 gn_memory_status SIMMemoryStatus   = {GN_MT_SM, 0, 0};
 gn_memory_status PhoneMemoryStatus = {GN_MT_ME, 0, 0};
@@ -115,12 +118,15 @@ static void busterminate (void)
     gn_lib_library_free ();
     } /* busterminate */
 
-static int businit (void)
+static int businit (HV *self)
 {
     gn_error err;
 
     if (opt_v) warn ("Starting businit ...\n");
-    if ((err = gn_lib_phoneprofile_load_from_file (configfile, configmodel, &state)) != GN_ERR_NONE) {
+
+    err = gn_lib_phoneprofile_load_from_file (configfile, configmodel, &state);
+    unless (err == GN_ERR_NONE) {
+	hv_puts (self, "ERROR", gn_error_print (err));
 	warn ("%s\n", gn_error_print (err));
 	if (configfile)
 	    warn (_("File: %s\n"), configfile);
@@ -134,16 +140,14 @@ static int businit (void)
     atexit (busterminate);
     /* signal(SIGINT, bussignal); */
 
-#ifdef NYI_TODO
-    if (install_log_handler ())
-	warn (_("WARNING: cannot open logfile, logs will be directed to stderr\n"));
-#endif
-
     if (opt_v) warn ("Opening phone ...\n");
-    if ((err = gn_lib_phone_open (state)) != GN_ERR_NONE) {
+    unless ((err = gn_lib_phone_open (state)) == GN_ERR_NONE) {
+	hv_puts (self, "ERROR", gn_error_print (err));
 	warn ("%s\n", gn_error_print (err));
 	return 2;
 	}
+
+    hv_puts (self, "ERROR", "");
     data = &state->sm_data;
     return 0;
     } /* businit */
@@ -153,10 +157,25 @@ static void clear_data (void)
     gn_data_clear (data);
     } /* clear_data */
 
+static int gn_sm_func (HV *self, int op)
+{
+    char *s_err;
+
+    op_error = gn_sm_functions (op, data, state);
+    if (op_error == GN_ERR_NONE) {
+	hv_puts (self, "ERROR", "no error / no data");
+	return (1);
+	}
+    s_err = gn_error_print (op_error);
+    warn ("OP ERROR: %s\n", s_err);
+    hv_puts (self, "ERROR", s_err);
+    return (0);
+    } /* gn_sm_func */
+
 MODULE = GSM::Gnokii		PACKAGE = GSM::Gnokii
 
 void
-Initialize (self)
+_Initialize (self)
     HV		*self;
 
   PPCODE:
@@ -164,18 +183,18 @@ Initialize (self)
 
     opt_v = SvIV (*hv_fetch (self, "verbose", 7, 0));
 
-    if (opt_v) warn ("Initialise ({ ... })\n");
+    if (opt_v) warn ("initialise ({ ... })\n");
 
-    if (gn_lib_init () != GN_ERR_NONE)
+    unless (gn_lib_init () == GN_ERR_NONE)
 	croak (_("Failed to initialize libgnokii.\n"));
 
     hv_puts (self, "libgnokii_version", LIBGNOKII_VERSION_STRING);
 
-    err = businit ();
+    err = businit (self);
 #ifdef OLD_AND_DONE
     char	*conn;
     SV		**value;
-    if (gn_cfg_read_default () != GN_ERR_NONE)
+    unless (gn_cfg_read_default () == GN_ERR_NONE)
 	croak (_("Failed to read config file(s).\n"));
 
     Zero (state, 1, State);
@@ -217,11 +236,11 @@ Initialize (self)
     clear_data ();
     err = gn_sm_functions (GN_OP_Init, data, state);
 #endif
-    if (err != GN_ERR_NONE)
+    unless (err == GN_ERR_NONE)
 	croak (">> Init => %s\n", gn_error_print (err));
 
     XSRETURN (err);
-    /* Initialise */
+    /* _Initialise */
 
 void
 ReadPhonebook (self, mem_type, start, end)
@@ -231,7 +250,6 @@ ReadPhonebook (self, mem_type, start, end)
     int			end;
 
   PPCODE:
-    gn_error		error;
     gn_phonebook_entry	*entry;
     int			mt, i, j;
     AV			*pb;
@@ -242,14 +260,17 @@ ReadPhonebook (self, mem_type, start, end)
 
     mt = gn_str2memory_type (mem_type);
     if (mt == GN_MT_XX) {
-	warn ("ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)!\n", mem_type);
+	char s_err[80];
+	sprintf (s_err, "ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)", mem_type);
+	hv_puts (self, "ERROR", s_err);
+	warn ("%s\n", s_err);
 	XSRETURN_UNDEF;
 	}
 
     if (end <= 0 || end == IV_MAX) {
 	gn_memory_status ms = {mt, 0, 0};
 	data->memory_status = &ms;
-	if (gn_sm_functions (GN_OP_GetMemoryStatus, data, state) == GN_ERR_NONE) {
+	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
 	    end = ms.used + 1;
 	    if (end < start)
 		end = start;
@@ -272,16 +293,17 @@ ReadPhonebook (self, mem_type, start, end)
 	entry->location       = i;
 	entry->caller_group   = i;
 	data->phonebook_entry = entry;
-	error = gn_sm_functions (GN_OP_ReadPhonebook, data, state);
+	op_error = gn_sm_functions (GN_OP_ReadPhonebook, data, state);
+	if (op_error == GN_ERR_NONE && ! entry->empty) {
 #ifdef DEBUG_MODULE
-	printf (
-	  "Name:    %s\n"
-	  "Number:  %s\n"
-	  "Group:   %d\n"
-	  "Location %d\n",
-	      entry->name, entry->number, entry->caller_group, entry->location);
+	    printf (
+	      "Name:    %s\n"
+	      "Number:  %s\n"
+	      "Group:   %d\n"
+	      "Location %d\n",
+		  entry->name, entry->number, entry->caller_group,
+		  entry->location);
 #endif
-	if (error == GN_ERR_NONE && ! entry->empty) {
 	    hv_puts (abe, "memorytype", mem_type);
 	    hv_puti (abe, "location",   entry->location);
 	    hv_puts (abe, "number",     entry->number);
@@ -439,7 +461,10 @@ GetSMS (self, mem_type, index)
 
     message->memory_type = gn_str2memory_type (mem_type);
     if (message->memory_type == GN_MT_XX) {
-	warn ("ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)!\n", mem_type);
+	char s_err[80];
+	sprintf (s_err, "ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)", mem_type);
+	hv_puts (self, "ERROR", s_err);
+	warn ("%s\n", s_err);
 	XSRETURN_UNDEF;
 	}
 
@@ -475,7 +500,7 @@ GetSMS (self, mem_type, index)
 	    default:
 		warn ("SMS message type '%s' not yet dealt with\n", gn_sms_message_type2str (message->type));
 	    }
-	if (!message->udh.number)
+	unless (message->udh.number)
 	    message->udh.udh[0].type = GN_SMS_UDH_None;
 
 	switch (message->udh.udh[0].type) {
@@ -539,7 +564,7 @@ DeleteSMS (self, memtype, index, foldername)
     Zero (&folderlist, 1, folderlist);
     message.memory_type = gn_str2memory_type (memtype);
     if (message.memory_type == GN_MT_XX)
-	warn (_("Unknown memory type %s (use ME, SM, ...)!\n"), memtype);
+	warn (_("Unknown memory type %s (use ME, SM, ...)\n"), memtype);
     else {
 	message.number        = index;
 	data->sms             = &message;
@@ -562,7 +587,7 @@ GetDateTime (self)
 
     clear_data ();
     data->datetime = &date_time;
-    if (gn_sm_functions (GN_OP_GetDateTime, data, state) == GN_ERR_NONE) {
+    if (gn_sm_func (self, GN_OP_GetDateTime)) {
 	HV *dt = newHV ();
 	GSMDATE_TO_TM ("date", date_time, dt);
 	XS_RETURN (dt);
@@ -570,6 +595,34 @@ GetDateTime (self)
 
     XSRETURN_UNDEF;
     /* GetDateTime */
+
+void
+GetDisplayStatus (self)
+    HvObject	*self;
+
+  PPCODE:
+    int		status = 0;
+
+    if (opt_v) warn ("GetDisplayStatus ()\n");
+
+    clear_data ();
+    data->display_status = &status;
+    if (gn_sm_func (self, GN_OP_GetDisplayStatus)) {
+	HV *ds = newHV ();
+
+	hv_puti (ds, "call_in_progress", status & (1 << GN_DISP_Call_In_Progress) ? 1 : 0);
+	hv_puti (ds, "unknown",          status & (1 << GN_DISP_Unknown)          ? 1 : 0);
+	hv_puti (ds, "unread_SMS",       status & (1 << GN_DISP_Unread_SMS)       ? 1 : 0);
+	hv_puti (ds, "voice_call",       status & (1 << GN_DISP_Voice_Call)       ? 1 : 0);
+	hv_puti (ds, "fax_call_active",  status & (1 << GN_DISP_Fax_Call)         ? 1 : 0);
+	hv_puti (ds, "data_call_active", status & (1 << GN_DISP_Data_Call)        ? 1 : 0);
+	hv_puti (ds, "keyboard_lock",    status & (1 << GN_DISP_Keyboard_Lock)    ? 1 : 0);
+	hv_puti (ds, "sms_storage_full", status & (1 << GN_DISP_SMS_Storage_Full) ? 1 : 0);
+	XS_RETURN (ds);
+	}
+
+    XSRETURN_UNDEF;
+    /* GetDisplayStatus */
 
 void
 GetSMSFolderList (self)
@@ -585,17 +638,17 @@ GetSMSFolderList (self)
     clear_data ();
     Zero (&folderlist, 1, folderlist);
     data->sms_folder_list = &folderlist;
-
-    if (gn_sm_functions (GN_OP_GetSMSFolders, data, state) != GN_ERR_NONE)
+    unless (gn_sm_func (self, GN_OP_GetSMSFolders))
 	XSRETURN_UNDEF;
 
     fl = newAV ();
     for (i = 0; i < folderlist.number; i++) {
 	HV *f = newHV ();
+	if (opt_v) warn (" + GetSMSFolderStatus (%d)", i);
 	hv_puti (f, "location", i);
 	hv_puts (f, "memorytype", gn_memory_type2str (folderlist.folder_id[i]));
 	data->sms_folder = folderlist.folder + i;
-	if (gn_sm_functions (GN_OP_GetSMSFolderStatus, data, state) == GN_ERR_NONE) {
+	if (gn_sm_func (self, GN_OP_GetSMSFolderStatus)) {
 	    hv_puts (f, "name",  folderlist.folder[i].name);
 	    hv_puti (f, "count", folderlist.folder[i].number);
 	    }
@@ -639,14 +692,14 @@ GetIMEI (self)
     HvObject	*self;
 
   PPCODE:
-    char	*imei, *model, *rev, *manufacturer;
+    char	imei[64], model[64], rev[64], manufacturer[64];
 
     if (opt_v) warn ("GetIMEI ()\n");
 
-    Newxz (imei,         64, char);
-    Newxz (model,        64, char);
-    Newxz (rev,          64, char);
-    Newxz (manufacturer, 64, char);
+    Zero (imei,         64, char);
+    Zero (model,        64, char);
+    Zero (rev,          64, char);
+    Zero (manufacturer, 64, char);
     data->imei         = imei;
     data->model        = model;
     data->revision     = rev;
@@ -662,6 +715,41 @@ GetIMEI (self)
 	}
     XSRETURN_UNDEF;
     /* GetIMEI */
+
+void
+GetSecurity (self)
+    HvObject		*self;
+
+  PPCODE:
+    gn_security_code	sc;
+
+    if (opt_v) warn ("GetSecurity ()\n");
+
+    Zero (&sc, 1, sc);
+    sc.type = GN_SCT_SecurityCode;
+    data->security_code = &sc;
+    if (gn_sm_functions(GN_OP_GetSecurityCodeStatus, data, state) == GN_ERR_NONE) {
+	char *key;
+	HV   *si = newHV ();
+
+	key = "status";
+	switch (sc.type) {
+	    case GN_SCT_SecurityCode: hv_puts (si, key, "Waiting for Security Code"); break;
+	    case GN_SCT_Pin:          hv_puts (si, key, "Waiting for PIN");           break;
+	    case GN_SCT_Pin2:         hv_puts (si, key, "Waiting for PIN2");          break;
+	    case GN_SCT_Puk:          hv_puts (si, key, "Waiting for PUK");           break;
+	    case GN_SCT_Puk2:         hv_puts (si, key, "Waiting for PUK2");          break;
+	    case GN_SCT_None:         hv_puts (si, key, "Nothing to enter");          break;
+	    default:                  hv_puts (si, key, "Unknown");                   break;
+	    }
+
+	if (gn_sm_functions(GN_OP_GetSecurityCode, data, state) == GN_ERR_NONE)
+	    hv_puts (si, "security_code", sc.code);
+
+	XS_RETURN (si);
+	}
+    XSRETURN_UNDEF;
+    /* GetSecurity */
 
 void
 GetLogo (self, logodata)
@@ -1098,7 +1186,7 @@ GetWapSettings (self, location)
     Zero (&wapsetting, 1, wapsetting);
     wapsetting.location = location;
     data->wap_setting   = &wapsetting;
-    if (gn_sm_functions (GN_OP_GetWAPSetting, data, state) != GN_ERR_NONE)
+    unless (gn_sm_funct (self, GN_OP_GetWAPSetting))
 	XSRETURN_UNDEF;
 
     ws = newHV ();
@@ -1245,27 +1333,66 @@ OUTPUT:
 
 void
 GetProfiles (self, start, end)
-    HvObject	*self;
-    int		start;
-    int		end;
+    HvObject		*self;
+    int			start;
+    int			end;
 
   PPCODE:
-    gn_profile	profile;
-    int		i;
-    char	*key;
-    HV		*p;
-    AV		*pl = newAV ();
+    gn_profile		profile;
+    gn_ringtone_list	rtl;
+    char		model[64] = "";
+    int			i, max_profiles = 7;
+    char		*key;
+    HV			*p;
+    AV			*pl = newAV ();
 
     if (opt_v) warn ("GetProfiles (%d, %d)\n", start, end);
 
-    for (i = start; i < end; i++) {
-	Zero (&profile, 1, profile);
-	profile.number = i;
-	clear_data ();
-	data->profile = &profile;
-	if (gn_sm_functions (GN_OP_GetProfile, data, state) != GN_ERR_NONE)
-	    continue;
+    warn ("GetProfile () @ %d\n", __LINE__);
+    clear_data ();
+    data->model = model;
+    unless (gn_sm_funct (self, GN_OP_GetModel))
+	XSRETURN_UNDEF;
 
+    if (strcmp (model, "NSE-1") == 0)
+	max_profiles = 3;
+
+    warn ("GetProfile () @ %d (%s)\n", __LINE__, model);
+    if (start < 0 || start > max_profiles) {
+	hv_puts (self, "ERROR", "Illegale profile id for start");
+	XSRETURN_UNDEF;
+	}
+    if (end == -1)
+	end = max_profiles;
+    if (end < start || end > max_profiles) {
+	hv_puts (self, "ERROR", "Illegale profile id for end");
+	XSRETURN_UNDEF;
+	}
+
+    warn ("GetProfile () @ %d\n", __LINE__);
+    Zero (&rtl,     1, rtl);
+    Zero (&profile, 1, profile);
+    profile.number      = 0;
+    data->profile       = &profile;
+    data->ringtone_list = &rtl;
+    unless (gn_sm_funct (self, GN_OP_GetProfile))
+	XSRETURN_UNDEF;
+
+    warn ("GetProfile () @ %d\n", __LINE__);
+    for (i = start; i < end; i++) {
+	if (i) {
+	    clear_data ();
+	    Zero (&profile, 1, profile);
+	    Zero (&rtl,     1, rtl);
+	    data->profile       = &profile;
+	    data->ringtone_list = &rtl;
+
+	    profile.number = i;
+	    unless (gn_sm_func (self, GN_OP_GetProfile))
+		continue;
+	    }
+
+	warn ("GetProfile () @ %d\n", __LINE__);
 	p = newHV ();
 	hv_puti (p, "number",      i);
 	hv_puts (p, "name",        profile.name);
@@ -1474,7 +1601,7 @@ SendSMS (self, smshash)
 #ifdef DEBUG_MODULE
     warn ("SendSMS @ %d : SMSCNo = %s\n", __LINE__, sms.smsc.number);
 #endif
-    if (!sms.smsc.number[0]) {
+    unless (sms.smsc.number[0]) {
 	Newxz (data->message_center, 1, gn_sms_message_center);
 	data->message_center->id = 1;
 	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
@@ -1484,14 +1611,14 @@ SendSMS (self, smshash)
 	Safefree (data->message_center);
 	}
 
-    if (!sms.smsc.type)
+    unless (sms.smsc.type)
 	sms.smsc.type = GN_GSM_NUMBER_Unknown;
 
     if ((value = hv_fetch (smshash, "message", 7, 0))) {
 	memset (sms.user_data[curpos].u.text, 0, GN_SMS_MAX_LENGTH);
 	strcpy ((char *)sms.user_data[curpos].u.text, SvPV_nolen (*value));
 	sms.user_data[curpos].type = GN_SMS_DATA_Text;
-	if (!gn_char_def_alphabet (sms.user_data[curpos].u.text))
+	unless (gn_char_def_alphabet (sms.user_data[curpos].u.text))
 	    sms.dcs.u.general.alphabet = GN_SMS_DCS_UCS2;
 	sms.user_data[++curpos].type = GN_SMS_DATA_None;
 	}
@@ -1506,13 +1633,13 @@ SendSMS (self, smshash)
 #endif
     data->sms = &sms;
 #ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d before send!\n", __LINE__);
+    warn ("SendSMS @ %d before send\n", __LINE__);
 #endif
     if (err == GN_ERR_NONE)
 	err = gn_sms_send (data, state);
     hv_puts (self, "ERROR", err == GN_ERR_NONE ? "" : gn_error_print (err));
 #ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d after send!\n", __LINE__);
+    warn ("SendSMS @ %d after send\n", __LINE__);
 #endif
     ST (0) = sv_2mortal (newSViv (err));
     XSRETURN (1);
