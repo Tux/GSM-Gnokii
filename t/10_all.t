@@ -12,14 +12,16 @@ use GSM::Gnokii;
 my $gsm  = GSM::Gnokii->new ({ verbose => 1 })->connect ();
 
 ok (my $get = {
+    IMEI	=> $gsm->GetIMEI (),
     DateTime	=> $gsm->GetDateTime (),
-    Profile_1	=> $gsm->GetProfiles (1, 1),
+    Security	=> $gsm->GetSecurity (),
+    Display	=> $gsm->GetDisplayStatus (),
+#   Profile_1	=> $gsm->GetProfiles (0, 0),
     Memory	=> $gsm->GetMemoryStatus (),
     Power	=> $gsm->GetPowerStatus (),
     PhoneBookME	=> $gsm->ReadPhonebook ("ME", 1, 0),
     PhoneBookSM	=> $gsm->ReadPhonebook ("SM", 1, 0),
     SpeedDial_2	=> $gsm->GetSpeedDial (2),
-    IMEI	=> $gsm->GetIMEI (),
     RF		=> $gsm->GetRF (),
     NetworkInfo	=> $gsm->GetNetworkInfo (),
     SMSCenter	=> $gsm->GetSMSCenter (1, 99),
@@ -30,7 +32,7 @@ ok (my $get = {
     SMSFolders	=> $gsm->GetSMSFolderList (),
     SMS_1	=> $gsm->GetSMS ("IN", 1),
     CalNotes	=> $gsm->GetCalendarNotes (0, 4),
-    WAPSettings	=> $gsm->GetWapSettings (2),
+#   WAPSettings	=> $gsm->GetWapSettings (2),
     }, "Execute Get methods");
 
 DDumper $get;
