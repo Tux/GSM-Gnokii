@@ -1131,7 +1131,7 @@ GetNetworkInfo (self)
     clear_data ();
     data->network_info = &NetworkInfo;
 
-    if (gn_sm_functions (GN_OP_GetNetworkInfo, data, state) == GN_ERR_NONE) {
+    if (gn_sm_func (self, GN_OP_GetNetworkInfo)) {
 	HV *ni = newHV ();
 	hv_puts (ni, "name",        (char *)gn_network_name_get (NetworkInfo.network_code));
 	hv_puts (ni, "countryname", (char *)gn_country_name_get (NetworkInfo.network_code));
