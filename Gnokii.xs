@@ -166,6 +166,7 @@ static int gn_sm_func (HV *self, int op)
 	hv_puts (self, "ERROR", "no error / no data");
 	return (1);
 	}
+
     s_err = gn_error_print (op_error);
     warn ("OP ERROR: %s\n", s_err);
     hv_puts (self, "ERROR", s_err);
@@ -675,7 +676,7 @@ GetSpeedDial (self, location)
     Newxz (speeddial, 1, gn_speed_dial);
     speeddial->number = location;
     data->speed_dial  = speeddial;
-    if (gn_sm_functions (GN_OP_GetSpeedDial, data, state) == GN_ERR_NONE) {
+    if (gn_sm_func (self, GN_OP_GetSpeedDial)) {
 	HV *sd = newHV ();
 
 	hv_puti (sd, "number",   speeddial->number);
@@ -728,7 +729,7 @@ GetSecurity (self)
     Zero (&sc, 1, sc);
     sc.type = GN_SCT_SecurityCode;
     data->security_code = &sc;
-    if (gn_sm_functions(GN_OP_GetSecurityCodeStatus, data, state) == GN_ERR_NONE) {
+    if (gn_sm_functions (GN_OP_GetSecurityCodeStatus, data, state) == GN_ERR_NONE) {
 	char *key;
 	HV   *si = newHV ();
 
@@ -743,7 +744,7 @@ GetSecurity (self)
 	    default:                  hv_puts (si, key, "Unknown");                   break;
 	    }
 
-	if (gn_sm_functions(GN_OP_GetSecurityCode, data, state) == GN_ERR_NONE)
+	if (gn_sm_functions (GN_OP_GetSecurityCode, data, state) == GN_ERR_NONE)
 	    hv_puts (si, "security_code", sc.code);
 
 	XS_RETURN (si);
