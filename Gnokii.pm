@@ -21,26 +21,37 @@ my @MEMORYTYPES = qw(
     F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 F13 F14 F15 F16 F17 F18 F19 F20
     );
 
+sub version
+{
+    return $VERSION;
+    } # version
+
 sub new
 {
-    my $gsm  = bless {
+    my $proto = shift;
+    my $class = ref ($proto) || $proto	or  return;
+    @_ > 0 &&   ref $_[0] ne "HASH"	and return;
+    my $attr  = shift || {};
+
+    bless {
 # TODO:
-#	device		=> "00:11:22:33:44:55",
-#	model		=> "3109",
+#	device			=> "00:11:22:33:44:55",
+#	model			=> "3109",
 #
-#	connection	=> "bluetooth",
-#	initlength	=> 0,
-#	use_locking	=> "no",
-#	serial_baudrate	=> 19200,
-#	smsc_timeout	=> 10,
-#	allow_breakage	=> 0,
-#	bindir		=> "/usr/sbin/",
-#	TELEPHONE	=> "0612345678",
-#	debug		=> "off",
-#	rlpdebug	=> "off",
-#	xdebug		=> "off",
-	}, "GSM::Gnokii";
-    $gsm;
+#	connection		=> "bluetooth",
+#	initlength		=> 0,
+#	use_locking		=> "no",
+#	serial_baudrate		=> 19200,
+#	smsc_timeout		=> 10,
+#	allow_breakage		=> 0,
+#	bindir			=> "/usr/sbin/",
+#	TELEPHONE		=> "0612345678",
+#	debug			=> "off",
+#	rlpdebug		=> "off",
+#	xdebug			=> "off",
+	gsm_gnokii_version	=> $VERSION,
+	verbose			=> $attr->{verbose} || 0,
+	}, $class;
     } # new
 
 sub AUTOLOAD
@@ -66,7 +77,7 @@ bootstrap GSM::Gnokii $VERSION;
 
 sub connect
 {
-    my ($self, $options) = @_;
+    my $self = shift;
 
     $self->{connection}   = $self->Initialize ();
     $self->{MEMORY_TYPES} = \@MEMORYTYPES;
@@ -77,7 +88,7 @@ sub DESTROY
 {
     my $self = shift;
 
-    $self->{connection} and $self->connection->disconnect ();
+    $self->disconnect ();
     } # DESTROY
 
 1;

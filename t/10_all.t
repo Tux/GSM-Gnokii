@@ -9,10 +9,11 @@ use Data::Peek;
 use List::Util qw( first );
 use GSM::Gnokii;
 
-my $gsm  = GSM::Gnokii->new ()->connect;
+my $gsm  = GSM::Gnokii->new ({ verbose => 1 })->connect ();
 
 ok (my $get = {
     DateTime	=> $gsm->GetDateTime (),
+    Profile_1	=> $gsm->GetProfiles (1, 1),
     Memory	=> $gsm->GetMemoryStatus (),
     Power	=> $gsm->GetPowerStatus (),
     PhoneBookME	=> $gsm->ReadPhonebook ("ME", 1, 0),

@@ -162,10 +162,14 @@ Initialize (self)
   PPCODE:
     int		err;
 
-    if (opt_v) warn ("Initialise ()\n");
+    opt_v = SvIV (*hv_fetch (self, "verbose", 7, 0));
+
+    if (opt_v) warn ("Initialise ({ ... })\n");
 
     if (gn_lib_init () != GN_ERR_NONE)
 	croak (_("Failed to initialize libgnokii.\n"));
+
+    hv_puts (self, "libgnokii_version", LIBGNOKII_VERSION_STRING);
 
     err = businit ();
 #ifdef OLD_AND_DONE
@@ -576,6 +580,8 @@ GetSMSFolderList (self)
     AV			*fl;
     int			i;
 
+    if (opt_v) warn ("GetSMSFolderList ()\n");
+
     clear_data ();
     Zero (&folderlist, 1, folderlist);
     data->sms_folder_list = &folderlist;
@@ -635,6 +641,8 @@ GetIMEI (self)
   PPCODE:
     char	*imei, *model, *rev, *manufacturer;
 
+    if (opt_v) warn ("GetIMEI ()\n");
+
     Newxz (imei,         64, char);
     Newxz (model,        64, char);
     Newxz (rev,          64, char);
@@ -663,6 +671,8 @@ GetLogo (self, logodata)
   PPCODE:
     gn_bmp	bitmap;
     char	*type;
+
+    if (opt_v) warn ("GetLogo ({ type => ... })\n");
 
     Zero (&bitmap, 1, gn_bmp);
     type = SvPV_nolen (*hv_fetch (logodata, "type", 4, 0));
@@ -719,6 +729,8 @@ GetCalendarNotes (self, start, end)
     int			i;
     AV			*cnl = newAV ();
 
+    if (opt_v) warn ("GetCalenderNotes (%d, %d)\n", start, end);
+
     for (i = start; i <= end; i++) {
 	clear_data ();
 	calendarnote.location = i;
@@ -770,6 +782,8 @@ GetRingtone (self, location)
     gn_ringtone		ringtone;
     gn_raw_data		rawdata;
     unsigned char	buff[512];
+
+    if (opt_v) warn ("GetRingtone (%d)\n", location);
 
     Zero (&ringtone, 1, ringtone);
     rawdata.data = buff;
@@ -827,6 +841,8 @@ GetSMSCenter (self, start, end)
     int				i;
     AV				*scl = newAV ();
 
+    if (opt_v) warn ("GetSMSCenter (%d, %d)\n", start, end);
+
     for (i = start; i <= end; i++) {
 	HV *mc = newHV ();
 
@@ -875,6 +891,8 @@ GetAlarm (self)
   PPCODE:
     gn_calnote_alarm	alarm;
 
+    if (opt_v) warn ("GetAlarm ()\n");
+
     clear_data ();
     data->alarm = &alarm;
     if (gn_sm_functions (GN_OP_GetAlarm, data, state) == GN_ERR_NONE) {
@@ -896,6 +914,8 @@ GetRF (self)
     float	rflevel = -1;
     gn_rf_unit	rfunit  = GN_RF_Arbitrary;
     HV		*rf = newHV ();;
+
+    if (opt_v) warn ("GetRF ()\n");
 
     clear_data ();
     data->rf_unit  = &rfunit;
@@ -996,6 +1016,8 @@ GetSMSStatus (self)
   PPCODE:
     gn_sms_status	SMSStatus = {0, 0, 0, 0};
 
+    if (opt_v) warn ("GetSMSStatus ()\n");
+
     clear_data ();
     data->sms_status = &SMSStatus;
     if (gn_sm_functions (GN_OP_GetSMSStatus, data, state) == GN_ERR_NONE) {
@@ -1015,20 +1037,22 @@ GetNetworkInfo (self)
     gn_network_info	NetworkInfo;
     char		buffer[10];
 
+    if (opt_v) warn ("GetNetworkInfo ()\n");
+
     clear_data ();
     data->network_info = &NetworkInfo;
 
     if (gn_sm_functions (GN_OP_GetNetworkInfo, data, state) == GN_ERR_NONE) {
 	HV *ni = newHV ();
-	hv_puts (ni, "name", (char *)gn_network_name_get (NetworkInfo.network_code));
+	hv_puts (ni, "name",        (char *)gn_network_name_get (NetworkInfo.network_code));
 	hv_puts (ni, "countryname", (char *)gn_country_name_get (NetworkInfo.network_code));
 	hv_puts (ni, "networkcode", NetworkInfo.network_code);
 	Zero (buffer, 10, char);
 	sprintf (buffer, "%02x%02x", NetworkInfo.cell_id[0], NetworkInfo.cell_id[1]);
-	hv_puts (ni, "cellid", buffer);
+	hv_puts (ni, "cellid",      buffer);
 	Zero (buffer, 10, char);
 	sprintf (buffer, "%02x%02x", NetworkInfo.LAC[0], NetworkInfo.LAC[1]);
-	hv_puts (ni, "lac", buffer);
+	hv_puts (ni, "lac",         buffer);
 	XS_RETURN (ni);
 	}
     XSRETURN_UNDEF;
@@ -1041,6 +1065,8 @@ GetWapBookmark (self, location)
 
   PPCODE:
     gn_wap_bookmark	wapbookmark;
+
+    if (opt_v) warn ("GetWapBookmark (%d)\n", location);
 
     clear_data ();
     Zero (&wapbookmark, 1, wapbookmark);
@@ -1065,6 +1091,8 @@ GetWapSettings (self, location)
     gn_wap_setting	wapsetting;
     char		*key;
     HV			*ws;
+
+    if (opt_v) warn ("GetWapSettings (%d)\n", location);
 
     clear_data ();
     Zero (&wapsetting, 1, wapsetting);
@@ -1228,6 +1256,8 @@ GetProfiles (self, start, end)
     HV		*p;
     AV		*pl = newAV ();
 
+    if (opt_v) warn ("GetProfiles (%d, %d)\n", start, end);
+
     for (i = start; i < end; i++) {
 	Zero (&profile, 1, profile);
 	profile.number = i;
@@ -1315,12 +1345,11 @@ SendSMS (self, smshash)
     int		curpos, err = GN_ERR_NONE;
     int		input_len;
 
-    if (opt_v) warn ("SendSMS ()\n");
+    if (opt_v) warn ("SendSMS ({ destination => ..., message => ... })\n");
 
     clear_data ();
-    Zero (&sms, 1, sms);
-    curpos = 0;
     gn_sms_default_submit (&sms);
+    curpos = 0;
     Zero (&(sms.remote.number), 1, sms.remote.number);
     if ((value = hv_fetch (smshash, "destination", 11, 0)) == NULL) {
 	hv_puts (self, "ERROR", "Destination must be set in smshash\n");
@@ -1332,9 +1361,6 @@ SendSMS (self, smshash)
 	sms.remote.type = GN_GSM_NUMBER_International;
     else
 	sms.remote.type = GN_GSM_NUMBER_Unknown;
-#ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d\n", __LINE__);
-#endif
 
     if ((value = hv_fetch (smshash, "smscnumber", 10, 0))) {
 #ifdef DEBUG_MODULE
@@ -1349,9 +1375,8 @@ SendSMS (self, smshash)
 #ifdef DEBUG_MODULE
     else
 	warn ("SendSMS: No smscn number\n");
-
-    warn ("SendSMS @ %d\n", __LINE__);
 #endif
+
     if ((value = hv_fetch (smshash, "smscindex", 9, 0))) {
 	gn_sms_message_center messagecenter;
 
@@ -1365,13 +1390,8 @@ SendSMS (self, smshash)
 	    hv_puts (self, "ERROR", "Messagecenter index must be between 1 and 5");
 	    XSRETURN_UNDEF;
 	    }
-#ifdef DEBUG_MODULE
-	warn ("SendSMS @ %d\n", __LINE__);
-#endif
+
 	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
-#ifdef DEBUG_MODULE
-	    warn ("SendSMS @ %d\n", __LINE__);
-#endif
 	    strcpy (sms.smsc.number, data->message_center->smsc.number);
 	    sms.smsc.type = data->message_center->smsc.type;
 	    }
@@ -1382,9 +1402,8 @@ SendSMS (self, smshash)
 #ifdef DEBUG_MODULE
     else
 	printf ("No index\n");
-
-    warn ("SendSMS @ %d\n", __LINE__);
 #endif
+
     if ((value = hv_fetch (smshash, "animation", 9, 0))) {
 	char	buf[10240];
 	char	*s = buf, *t;
@@ -1420,31 +1439,32 @@ SendSMS (self, smshash)
 	sms.user_data[1].type = GN_SMS_DATA_None;
 	err = gn_file_ringtone_read (filename, &(sms.user_data[0].u.ringtone));
 	}
-#ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d\n", __LINE__);
-#endif
+
     if ((value = hv_fetch (smshash, "report", 6, 0)))
 	sms.delivery_report = true;
 
     if ((value = hv_fetch (smshash, "class", 5, 0))) {
 	int class;
 
-	class = SvIV (*value);
-	if (class < 0 || class >= 5) {
+	if (!SvOK (*value))		/* undef: Do not use class	*/
+	    sms.dcs.u.general.m_class = 0;
+	else if (SvIOK (*value)) {	/* class 0 .. 3			*/
+	    class = SvIV (*value);
+	    if (class < 0 || class > 3) {
+		hv_puts (self, "ERROR", "Illegal classvalue");
+		XSRETURN_UNDEF;
+		}
+	    sms.dcs.u.general.m_class = class + 1;
+	    }
+	else {
 	    hv_puts (self, "ERROR", "Illegal classvalue");
 	    XSRETURN_UNDEF;
 	    }
-
-	sms.dcs.u.general.m_class = class;
 	}
-#ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d\n", __LINE__);
-#endif
+
     if ((value = hv_fetch (smshash, "validity", 8, 0)))
 	sms.validity = SvIV (*value);
-#ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d\n", __LINE__);
-#endif
+
     if ((value = hv_fetch (smshash, "eightbit", 8, 0))) {
 	sms.dcs.u.general.alphabet = GN_SMS_DCS_8bit;
 	input_len = GN_SMS_8BIT_MAX_LENGTH;
@@ -1455,34 +1475,18 @@ SendSMS (self, smshash)
     warn ("SendSMS @ %d : SMSCNo = %s\n", __LINE__, sms.smsc.number);
 #endif
     if (!sms.smsc.number[0]) {
-#ifdef DEBUG_MODULE
-	warn ("SendSMS @ %d\n", __LINE__);
-#endif
 	Newxz (data->message_center, 1, gn_sms_message_center);
 	data->message_center->id = 1;
-#ifdef DEBUG_MODULE
-	warn ("SendSMS @ %d\n", __LINE__);
-#endif
 	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
-#ifdef DEBUG_MODULE
-	    warn ("SendSMS @ %d\n", __LINE__);
-#endif
 	    strcpy (sms.smsc.number, data->message_center->smsc.number);
 	    sms.smsc.type = data->message_center->smsc.type;
 	    }
-#ifdef DEBUG_MODULE
-	warn ("SendSMS @ %d\n", __LINE__);
-#endif
 	Safefree (data->message_center);
 	}
-#ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d\n", __LINE__);
-#endif
+
     if (!sms.smsc.type)
 	sms.smsc.type = GN_GSM_NUMBER_Unknown;
-#ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d\n", __LINE__);
-#endif
+
     if ((value = hv_fetch (smshash, "message", 7, 0))) {
 	memset (sms.user_data[curpos].u.text, 0, GN_SMS_MAX_LENGTH);
 	strcpy ((char *)sms.user_data[curpos].u.text, SvPV_nolen (*value));
@@ -1882,6 +1886,8 @@ PrintError (self, errno)
     HvObject	*self;
 
   CODE:
+    if (opt_v) warn ("PrintError (%d)\n", errno);
+
     warn ("%s\n", gn_error_print (errno));
 
 void
@@ -1889,7 +1895,13 @@ disconnect (self)
     HvObject	*self;
 
   PPCODE:
-    busterminate ();
+    if (opt_v) warn ("disconnect ()\n");
+
+    if (hv_exists (self, "connection", 10)) {
+	hv_delete (self, "connection", 10, 0);
+	busterminate ();
+	}
+
     XSRETURN (0);
 
 double
