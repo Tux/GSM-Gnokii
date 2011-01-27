@@ -908,7 +908,7 @@ GetRingtoneList (self)
     clear_data ();
     Zero (&ringtone_list, 1, ringtone_list);
     data->ringtone_list = &ringtone_list;
-    if (gn_sm_functions(GN_OP_GetRingtoneList, data, state) == GN_ERR_NONE) {
+    if (gn_sm_functions (GN_OP_GetRingtoneList, data, state) == GN_ERR_NONE) {
 	HV *rl = newHV ();
 
 	hv_puti (rl, "count",            ringtone_list.count);
@@ -1009,7 +1009,7 @@ GetRF (self)
     clear_data ();
     data->rf_unit  = &rfunit;
     data->rf_level = &rflevel;
-    if (gn_sm_functions (GN_OP_GetRFLevel, data, state) == GN_ERR_NONE) {
+    if (gn_sm_func (self, GN_OP_GetRFLevel)) {
 	hv_putn (rf, "level", rflevel);
 	hv_puti (rf, "unit", rfunit);
 	}
