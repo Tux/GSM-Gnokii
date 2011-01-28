@@ -1,0 +1,38 @@
+#!/pro/bin/perl
+
+use strict;
+use warnings;
+use autodie;
+
+use GSM::Gnokii;
+use JSON;
+
+my $gsm  = GSM::Gnokii->new ({ verbose => 1 })->connect ();
+
+binmode STDOUT, ":encoding(utf-8)";
+
+print to_json ({
+    IMEI	=> $gsm->GetIMEI (),
+    DateTime	=> $gsm->GetDateTime (),
+    Security	=> $gsm->GetSecurity (),
+    Display	=> $gsm->GetDisplayStatus (),
+#   Profile_1	=> $gsm->GetProfiles (0, 0),
+    Memory	=> $gsm->GetMemoryStatus (),
+    Power	=> $gsm->GetPowerStatus (),
+    PhoneBook	=> { map {( $_ => $gsm->ReadPhonebook ($_, 1, 0) )} "ME", "SM" },
+    SpeedDial	=> [ map { $gsm->GetSpeedDial ($_) } 0 .. 9 ],
+    RF		=> $gsm->GetRF (),
+    NetworkInfo	=> $gsm->GetNetworkInfo (),
+    SMSCenters	=> $gsm->GetSMSCenter (1, 9),
+    Alarm	=> $gsm->GetAlarm (),
+    RingtoneList=> $gsm->GetRingtoneList (),
+    Ringtones	=> [ map { $gsm->GetRingtone ($_)  } 0 .. 9 ],
+    SMSStatus	=> $gsm->GetSMSStatus (),
+    SMSFolders	=> $gsm->GetSMSFolderList (),
+    SMS_1	=> $gsm->GetSMS ("IN", 1),	# Change to some structure with all
+#   CalNotes	=> $gsm->GetCalendarNotes (0, 4),
+#   WAPSettings	=> $gsm->GetWapSettings (2),
+    }, {
+	utf8	=> 1,
+	pretty	=> 1,
+	});
