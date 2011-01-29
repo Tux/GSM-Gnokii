@@ -498,6 +498,9 @@ STDERR handle.
 =head2 DeleteAllTodos
 =head2 DeleteSMS
 =head2 DeleteWapBookmark
+=head2 GetFileList
+=head2 GetFiles
+=head2 GetMMS
 =head2 SetAlarm
 =head2 SetDateTime
 =head2 SetSpeedDial
