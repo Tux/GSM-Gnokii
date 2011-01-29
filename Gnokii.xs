@@ -201,53 +201,8 @@ _Initialize (self)
     hv_puts (self, "libgnokii_version", LIBGNOKII_VERSION_STRING);
 
     err = businit (self);
-#ifdef OLD_AND_DONE
-    char	*conn;
-    SV		**value;
-    unless (gn_cfg_read_default () == GN_ERR_NONE)
-	croak (_("Failed to read config file(s).\n"));
-
-    Zero (state, 1, State);
-
-    conn = SvPV_nolen (*hv_fetch (self, "connection", 10, 0));
-    /* this is borrowed from gnokii.c */
-    strcpy (State.config.model,       SvPV_nolen (*hv_fetch (self, "model",  5, 0)));
-    strcpy (State.config.port_device, SvPV_nolen (*hv_fetch (self, "device", 6, 0)));
-	 if (!strcasecmp (conn, "serial"))
-	State.config.connection_type = GN_CT_Serial;
-    else if (!strcasecmp (conn, "dau9p"))
-	State.config.connection_type = GN_CT_DAU9P;
-    else if (!strcasecmp (conn, "dlr3p"))
-	State.config.connection_type = GN_CT_DLR3P;
-    else if (!strcasecmp (conn, "infrared"))
-	State.config.connection_type = GN_CT_Infrared;
-    else if (!strcasecmp (conn, "m2bus"))
-	State.config.connection_type = GN_CT_M2BUS;
-    else if (!strcasecmp (conn, "irda"))
-	State.config.connection_type = GN_CT_Irda;
-    else if (!strcasecmp (conn, "tcp"))
-	State.config.connection_type = GN_CT_TCP;
-    else if (!strcasecmp (conn, "tekram"))
-	State.config.connection_type = GN_CT_Tekram;
-    else if (!strcasecmp (conn, "bluetooth"))
-	State.config.connection_type = GN_CT_Bluetooth;
-    else if (!strcasecmp (conn, "dku2"))
-	State.config.connection_type = GN_CT_DKU2;
-    else
-	croak (_("invalid connection type \"%s\". Quitting.\n"), conn);
-
-    /* Windows is not supported */
-    State.config.init_length         = ((value = hv_fetch (self, "initlength",          10, 0)) == NULL) ?     0 : SvIV (*value);
-    State.config.serial_baudrate     = ((value = hv_fetch (self, "serial_baudrate",     15, 0)) == NULL) ? 19200 : SvIV (*value);
-    State.config.serial_write_usleep = ((value = hv_fetch (self, "serial_write_usleep", 19, 0)) == NULL) ?    -1 : SvIV (*value);
-    State.config.hardware_handshake  = ((value = hv_fetch (self, "hardware_handshake",  18, 0)) == NULL) ? false : (bool)SvIV (*value);
-    State.config.require_dcd         = ((value = hv_fetch (self, "require_dcd",         11, 0)) == NULL) ? false : (bool)SvIV (*value);
-    State.config.smsc_timeout        = ((value = hv_fetch (self, "smsc_timeout",        12, 0)) == NULL) ?     0 : (unsigned int)SvIV (*value);
-    clear_data ();
-    err = gn_sm_functions (GN_OP_Init, data, state);
-#endif
     unless (err == GN_ERR_NONE)
-	croak (">> Init => %s\n", gn_error_print (err));
+	croak ("Init failed");
 
     XSRETURN (err);
     /* _Initialise */
