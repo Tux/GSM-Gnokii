@@ -23,18 +23,18 @@ GetOptions (
     "v|verbose:2"	=> \$opt_v,
     ) or usage (1);
 
+my $font       = "{DejaVu Sans Mono} 8";
+my $small_font = "{DejaVu Sans Mono} 6";
+
 use Data::Peek;
 use GSM::Gnokii;
 use List::Util qw( max );
 use Tk;
 use Tk::BrowseEntry;
+use Tk::ProgressBar;
 
 $opt_v and print STDERR "Connecting ...\n";
 my $gsm = GSM::Gnokii->new ({ verbose => $opt_v })->connect;
-$opt_v and print STDERR "Get signal strength ...\n";
-my $ns  = $gsm->GetRF ();
-$opt_v and print STDERR "Get power status ...\n";
-my $ps  = $gsm->GetPowerStatus ();
 $opt_v and print STDERR "Read phonebook ...\n";
 my @pb =
     sort { $a->[2] cmp $b->[2] }
@@ -50,7 +50,6 @@ my @pb =
 	[ $idx, $number, $name ];
 	}
     @{$gsm->GetPhonebook ("ME", 1, 0) || []};
-#$gsm->disconnect;
 
 my $status = "";
 
@@ -65,14 +64,58 @@ $opt_v and print STDERR "Starting GUI ...\n";
 
 my $mw = MainWindow->new;
 
-my $font = "{DejaVu Sans Mono} 8";
-
 my $f_sig = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -expand => 1);
 my $f_tgt = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -expand => 1);
 my $f_msg = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -expand => 1);
 my $f_btn = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -expand => 1);
 
+{   my $strgth = 0;
+    my $power  = 0;
+
+    $f_sig->ProgressBar (
+	-colors		=> [ 0 => "red", 40 => "yellow", 70 => "green" ],
+	-borderwidth	=>   0,
+	-width		=>  10,
+	-length		=> 220,
+	-variable	=> \$strgth,
+	-blocks		=>  20,
+	-anchor		=> "w",
+	-from		=>   0,
+	-to		=> 100,
+	)->pack (-side => "left",  -anchor => "w", -fill => "none", -expand => 0);
+    $f_sig->Label (
+	-text		=> "GSM::Gnokii-@{[$gsm->version]} - libgnokii-@{[$gsm->{libgnokii_version}]}",
+	-font		=> $small_font,
+	-foreground	=> "Gray40",
+	)->pack (-side => "left",  -anchor => "c", -fill => "both", -expand => 1);
+    $f_sig->ProgressBar (
+	-colors		=> [ 0 => "red", 20 => "yellow", 45 => "green" ],
+	-borderwidth	=>   0,
+	-width		=>  10,
+	-length		=> 220,
+	-variable	=> \$power,
+	-blocks		=>  20,
+	-anchor		=> "e",
+	-from		=>   0,
+	-to		=>  60,
+	)->pack (-side => "right", -anchor => "e", -fill => "none", -expand => 0);
+
+    sub get_levels
+    {
+	$opt_v and print STDERR "Get signal strength ...\n";
+	my $ns  = $gsm->GetRF ();
+	$strgth = $ns->{level};
+	$opt_v and print STDERR "Get power status ...\n";
+	my $ps  = $gsm->GetPowerStatus ();
+	$power  = $ps->{level};
+	$f_sig->after (30_000, \&get_levels);
+	} # get_levels
+
+    get_levels ();
+    }
+
 my ($t_number, $t_name, $t_entry) = ("number", "name", "");
+@pb == 1 and ($t_number, $t_name) = ($pb[0][1], $pb[0][2]);
 $f_tgt->Label (
     -text		=> "To",
     -font		=> $font,
@@ -128,6 +171,18 @@ $f_btn->Button (
     -command		=> sub { send_msg ($t_number, $t->get ("0.0", "end")) },
     )->pack (-side => "right", -anchor => "e", -fill => "none", -expand => 0);
 
+sub status
+{
+    $status = shift;
+    if ($l_stat) {
+	$l_stat->configure (-foreground => shift);
+	$mw->update;
+	}
+    else {
+	$opt_v and print STDERR "$status\n";
+	}
+    } # status
+
 sub send_msg
 {
     my ($dest, $message) = @_;
@@ -135,19 +190,12 @@ sub send_msg
     $message =~ s/^\s+//;
     $opt_v and print STDERR "To:  $dest ($t_name)\nMsg: $message\n";
     unless ($dest =~ m/^\+?[0-9]+$/ and $message =~ m/^\S/) {
-	$status = "Both number and message needed";
-	$l_stat and $l_stat->configure (-foreground => "Red");
+	status "Both number and message needed", "Red";
 	return;
 	}
     my $b8 = ($message =~ m/^[ -~]+$/) ? 0 : 1;
-    $status = "Connecting ...";
-    if ($l_stat) {
-	$l_stat->configure (-foreground => "Black");
-	$mw->update;
-	}
-#   $gsm->connect ();
-    $status = "Sending ...";
-    $l_stat and $mw->update;
+
+    status "Sending ...", "Black";
     my $err = $gsm->SendSMS ({
 	destination	=> $dest,
 	smscindex	=> 1,
@@ -158,14 +206,11 @@ sub send_msg
 #	validity	=> 173,	# 1 week
 	});
     if (defined $err and $err == 0) {
-	$status = "Message sent";
-	$l_stat and $l_stat->configure (-foreground => "#00a000");
+	status "Message sent", "#00a000";
 	}
     else {
-	$status = $gsm->{ERROR} || "ERROR: ".DPeek $err;
-	$l_stat and $l_stat->configure (-foreground => "#d00000");
+	status (($gsm->{ERROR} || "ERROR: ".DPeek $err), "#d00000");
 	}
-#   $gsm->disconnect;
     $err;
     } # send_msg
 
