@@ -33,8 +33,12 @@
 #define hv_putr(hash,key,ref) _hvstore (hash, key, newRV_inc ((SV *)(ref)))
 #define av_addr(list,ref)     av_push  (list,      newRV_inc ((SV *)(ref)))
 
-#define XS_RETURN(rv) {\
+#define XS_RETURNr(rv) {\
     ST (0) = sv_2mortal (newRV_noinc ((SV *)(rv)));\
+    XSRETURN (1);\
+    }
+#define XS_RETURNi(i) {\
+    ST (0) = sv_2mortal (newSViv (i));\
     XSRETURN (1);\
     }
 
@@ -403,7 +407,7 @@ GetPhonebook (self, mem_type, start, end)
 #endif
 	}
 
-    XS_RETURN (pb);
+    XS_RETURNr (pb);
     /* GetPhonebook */
 
 void
@@ -503,7 +507,7 @@ GetSMS (self, mem_type, index)
 		warn ("\tLoca: %d\n", data->sms_folder_list->folder[i].locations[j]);
 #endif
 	    }
-	XS_RETURN (sms);
+	XS_RETURNr (sms);
 	}
     XSRETURN_UNDEF;
     /* GetSMS */
@@ -553,7 +557,7 @@ GetDateTime (self)
     if (gn_sm_func (self, GN_OP_GetDateTime)) {
 	HV *dt = newHV ();
 	GSMDATE_TO_TM ("date", date_time, dt);
-	XS_RETURN (dt);
+	XS_RETURNr (dt);
 	}
 
     XSRETURN_UNDEF;
@@ -581,7 +585,7 @@ GetDisplayStatus (self)
 	hv_puti (ds, "data_call_active", status & (1 << GN_DISP_Data_Call)        ? 1 : 0);
 	hv_puti (ds, "keyboard_lock",    status & (1 << GN_DISP_Keyboard_Lock)    ? 1 : 0);
 	hv_puti (ds, "sms_storage_full", status & (1 << GN_DISP_SMS_Storage_Full) ? 1 : 0);
-	XS_RETURN (ds);
+	XS_RETURNr (ds);
 	}
 
     XSRETURN_UNDEF;
@@ -617,7 +621,7 @@ GetSMSFolderList (self)
 	    }
 	av_addr (fl, f);
 	}
-    XS_RETURN (fl);
+    XS_RETURNr (fl);
     /* GetSMSFolderList */
 
 void
@@ -645,7 +649,7 @@ GetSpeedDial (self, location)
 	hv_puti (sd, "location", speeddial->location);
 	ssv = av_fetch ((AV *)SvRV (*hv_fetch (self, "MEMORY_TYPES", 12, 0)), speeddial->memory_type, 0);
 	hv_puts (sd, "memory",   SvPV_nolen (*ssv));
-	XS_RETURN (sd);
+	XS_RETURNr (sd);
 	}
     XSRETURN_UNDEF;
     /* GetSpeedDial */
@@ -675,7 +679,7 @@ GetIMEI (self)
 	hv_puts (ih, "model",        data->model);
 	hv_puts (ih, "revision",     data->revision);
 	hv_puts (ih, "manufacturer", data->manufacturer);
-	XS_RETURN (ih);
+	XS_RETURNr (ih);
 	}
     XSRETURN_UNDEF;
     /* GetIMEI */
@@ -735,7 +739,7 @@ GetSecurity (self)
 		}
 	    }
 
-	XS_RETURN (si);
+	XS_RETURNr (si);
 	}
     XSRETURN_UNDEF;
     /* GetSecurity */
@@ -790,7 +794,7 @@ GetLogo (self, logodata)
 	hv_puti (l, "size",   bitmap.size);
 	hv_puti (l, "height", bitmap.height);
 	hv_puti (l, "width",  bitmap.width);
-	XS_RETURN (l);
+	XS_RETURNr (l);
 	}
     XSRETURN_UNDEF;
     /* GetLogo */
@@ -848,7 +852,7 @@ GetCalendarNotes (self, start, end)
 	    av_addr (cnl, note);
 	    }
 	}
-    XS_RETURN (cnl);
+    XS_RETURNr (cnl);
     /* GetCalendarNotes */
 
 void
@@ -880,7 +884,7 @@ GetRingtone (self, location)
 	gn_ringtone_pack (&ringtone, buffer, &i);
 	hv_puts (rt, "ringtone", buffer);
 	hv_puti (rt, "length",   i);
-	XS_RETURN (rt);
+	XS_RETURNr (rt);
 	}
     XSRETURN_UNDEF;
     /* GetRingtone */
@@ -903,7 +907,7 @@ GetRingtoneList (self)
 	hv_puti (rl, "count",            ringtone_list.count);
 	hv_puti (rl, "userdef_location", ringtone_list.userdef_location);
 	hv_puti (rl, "userdef_count",    ringtone_list.userdef_count);
-	XS_RETURN (rl);
+	XS_RETURNr (rl);
 	}
     XSRETURN_UNDEF;
     /* GetRingtoneList */
@@ -959,7 +963,7 @@ GetSMSCenter (self, start, end)
 	    av_addr (scl, mc);
 	    }
 	}
-    XS_RETURN (scl);
+    XS_RETURNr (scl);
     /* GetSMSCenter */
 
 void
@@ -979,7 +983,7 @@ GetAlarm (self)
 	sprintf (time, "%02d:%02d", alarm.timestamp.hour, alarm.timestamp.minute);
 	hv_puts (ah, "alarm", time);
 	hv_puts (ah, "state", (alarm.enabled ? "on" : "off"));
-	XS_RETURN (ah);
+	XS_RETURNr (ah);
 	}
     XSRETURN_UNDEF;
     /* GetAlarm */
@@ -1002,7 +1006,7 @@ GetRF (self)
 	hv_putn (rf, "level", rflevel);
 	hv_puti (rf, "unit", rfunit);
 	}
-    XS_RETURN (rf);
+    XS_RETURNr (rf);
     /* GetRF */
 
 void
@@ -1025,7 +1029,7 @@ GetPowerStatus (self)
 	hv_putn (ps, "level",  batterylevel);
     if (gn_sm_functions (GN_OP_GetPowersource,  data, state) == GN_ERR_NONE)
 	hv_puts (ps, "source", gn_power_source2str (powersource));
-    XS_RETURN (ps);
+    XS_RETURNr (ps);
     /* GetPowerStatus */
 
 void
@@ -1084,7 +1088,7 @@ GetMemoryStatus (self)
 	hv_puti (ms, "rcused", RC_MemoryStatus.used);
 	hv_puti (ms, "rcfree", RC_MemoryStatus.free);
 	}
-    XS_RETURN (ms);
+    XS_RETURNr (ms);
     /* GetMemoryStatus */
 
 void
@@ -1102,7 +1106,7 @@ GetSMSStatus (self)
 	HV *ss = newHV ();
 	hv_puti (ss, "unread", SMSStatus.unread);
 	hv_puti (ss, "read",   SMSStatus.number);
-	XS_RETURN (ss);
+	XS_RETURNr (ss);
 	}
     XSRETURN_UNDEF;
     /* GetSMSStatus */
@@ -1131,7 +1135,7 @@ GetNetworkInfo (self)
 	Zero (buffer, 10, char);
 	sprintf (buffer, "%02x%02x", NetworkInfo.LAC[0], NetworkInfo.LAC[1]);
 	hv_puts (ni, "lac",         buffer);
-	XS_RETURN (ni);
+	XS_RETURNr (ni);
 	}
     XSRETURN_UNDEF;
     /* GetNetworkInfo */
@@ -1155,7 +1159,7 @@ GetWapBookmark (self, location)
 	hv_puti (wbm, "location", location);
 	hv_puts (wbm, "name",     wapbookmark.name);
 	hv_puts (wbm, "url",      wapbookmark.URL);
-	XS_RETURN (wbm);
+	XS_RETURNr (wbm);
 	}
     XSRETURN_UNDEF;
     /* GetWapBookmark */
@@ -1262,7 +1266,7 @@ GetWapSettings (self, location)
     hv_puts (ws, "gprs_pass",     wapsetting.gprs_password);
     hv_puts (ws, "sms_servicenr", wapsetting.sms_service_number);
     hv_puts (ws, "sms_servernr",  wapsetting.sms_server_number);
-    XS_RETURN (ws);
+    XS_RETURNr (ws);
     /* GetWapSettings */
 
 void
@@ -1299,7 +1303,7 @@ GetTodo (self, start, end)
 	    av_addr (tdl, t);
 	    }
 	}
-    XS_RETURN (tdl);
+    XS_RETURNr (tdl);
 
 void
 GetProfiles (self, start, end)
@@ -1428,7 +1432,7 @@ GetProfiles (self, start, end)
 	hv_puts (p, "automatic_answer", profile.automatic_answer ? "On" : "Off");
 	av_addr (pl, p);
 	}
-    XS_RETURN (pl);
+    XS_RETURNr (pl);
     /* GetProfiles */
 
 void
