@@ -756,6 +756,30 @@ GetSecurity (self)
 	if (gn_sm_functions (GN_OP_GetSecurityCode, data, state) == GN_ERR_NONE)
 	    hv_puts (si, "security_code", sc.code);
 
+	if (0) {	/* *** stack smashing detected *** */
+	    gn_locks_info	li[4];
+
+	    clear_data ();
+	    Zero (li, 4, li);
+	    data->locks_info = li;
+	    if (gn_sm_functions (GN_OP_GetLocksInfo,    data, state) == GN_ERR_NONE) {
+		char *lock_names[] = {"MCC+MNC", "GID1", "GID2", "MSIN"};
+		int  i;
+		AV   *lil = newAV ();
+
+		for (i = 0; i < 4; i++) {
+		    HV *l = newHV ();
+		    hv_puts (l, "name",    lock_names[i]);
+		    hv_puts (l, "type",    li[i].userlock ? "user"   : "factory");
+		    hv_puts (l, "state",   li[i].closed   ? "closed" : "open");
+		    hv_puts (l, "data",    li[i].data);
+		    hv_puti (l, "counter", li[i].counter);
+		    av_addr (lil, l);
+		    }
+		hv_putr (si, "locks", lil);
+		}
+	    }
+
 	XS_RETURN (si);
 	}
     XSRETURN_UNDEF;
