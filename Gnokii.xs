@@ -1859,29 +1859,35 @@ CODE:
 OUTPUT:
         RETVAL
 
-int
-SetAlarm (self, datetime)
-HvObject *self;
-time_t datetime;
-PREINIT:
-gn_calnote_alarm *alarm;
-struct tm *t;
-CODE:
-{
-        clear_data ();
-	t = localtime (&datetime);
-	Newxz (alarm, 1, gn_calnote_alarm);
-	alarm->timestamp.hour = t->tm_hour;
-	alarm->timestamp.minute = t->tm_min;
-	alarm->timestamp.second = t->tm_sec;
-	alarm->enabled = true;
-	data->alarm = alarm;
-	RETVAL = gn_sm_functions (GN_OP_SetAlarm, data, state);
-	Safefree (alarm);
-	data->alarm = NULL;
-}
-OUTPUT:
-        RETVAL
+void
+SetAlarm (self, hour, minute)
+    HvObject		*self;
+    int			hour;
+    int			minute;
+
+  PPCODE:
+    gn_calnote_alarm	at;
+    int			err;
+
+    clear_data ();
+    if (hour   < 0 || hour   > 23) {
+	set_errors ("Alarm hour must be in [0..23]");
+	XSRETURN_UNDEF;
+	}
+    if (minute < 0 || minute > 59) {
+	set_errors ("Alarm minute must be in [0..59]");
+	XSRETURN_UNDEF;
+	}
+
+    Zero (&at, 1, gn_calnote_alarm);
+    at.timestamp.hour   = hour;
+    at.timestamp.minute = minute;
+    at.timestamp.second = 0;
+    at.enabled          = true;
+    data->alarm         = &at;
+    err = gn_sm_functions (GN_OP_SetAlarm, data, state);
+    set_errori (err);
+    XS_RETURNi (err);
 
 int
 WriteTodo (self, todohash)

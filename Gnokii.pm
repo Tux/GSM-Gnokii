@@ -496,6 +496,11 @@ STDERR handle.
 
 Will delete B<all> TODO items.
 
+=head2 SetAlarm (hour, minute)
+
+Set and enable alarm. Hour should be between 0 and 23, Minute between
+0 and 59.
+
 =head2 ActivateWapSetting
 =head2 CreateSMSFolder
 =head2 DeleteSMS
@@ -503,7 +508,6 @@ Will delete B<all> TODO items.
 =head2 GetFileList
 =head2 GetFiles
 =head2 GetMMS
-=head2 SetAlarm
 =head2 SetDateTime
 =head2 SetSpeedDial
 =head2 WriteCalendarNote
