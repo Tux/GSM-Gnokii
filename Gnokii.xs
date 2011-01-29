@@ -1889,33 +1889,30 @@ SetAlarm (self, hour, minute)
     set_errori (err);
     XS_RETURNi (err);
 
-int
+void
 WriteTodo (self, todohash)
-HvObject *self;
-HV *todohash;
-PREINIT:
-gn_todo *todo;
-char *buf;
-CODE:
-{
-        clear_data ();
-	Newxz (todo, 1, gn_todo);
-	strcpy (todo->text, SvPV_nolen (*hv_fetch (todohash, "text", 4, 0)));
-	buf = SvPV_nolen (*hv_fetch (todohash, "priority", 8, 0));
-	if (!strcasecmp (buf, "low"))
-	  todo->priority = GN_TODO_LOW;
-	else if (!strcasecmp (buf, "medium"))
-	  todo->priority = GN_TODO_MEDIUM;
-	else if (!strcasecmp (buf, "high"))
-	  todo->priority = GN_TODO_HIGH;
-	data->todo = todo;
-	RETVAL = gn_sm_functions (GN_OP_WriteToDo, data, state);
-	hv_store (todohash, "location", 8, sv_2mortal (newSViv (todo->location)), 0);
-	Safefree (todo);
-	data->todo = NULL;
-}
-OUTPUT:
-        RETVAL
+    HvObject	*self;
+    HV		*todohash;
+
+  PPCODE:
+    gn_todo	todo;
+    char	*buf;
+    int		err;
+
+    clear_data ();
+    Zero (&todo, 1, todo);
+    strcpy (todo.text, SvPV_nolen (*hv_fetch (todohash, "text", 4, 0)));
+    buf = SvPV_nolen (*hv_fetch (todohash, "priority", 8, 0));
+    if      (!strcasecmp (buf, "low"))
+	todo.priority = GN_TODO_LOW;
+    else if (!strcasecmp (buf, "medium"))
+	todo.priority = GN_TODO_MEDIUM;
+    else if (!strcasecmp (buf, "high"))
+	todo.priority = GN_TODO_HIGH;
+    data->todo = &todo;
+    err = gn_sm_functions (GN_OP_WriteToDo, data, state);
+    set_errori (err);
+    XS_RETURNi (todo.location);
 
 void
 DeleteAllTodos (self)
