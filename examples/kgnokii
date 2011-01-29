@@ -12,7 +12,7 @@ sub usage
     } # usage
 
 use Getopt::Long qw(:config bundling nopermute);
-my $opt_v = 0;
+my $opt_v = 1;
 my $msg   = "";
 my $to    = "";
 GetOptions (
@@ -20,7 +20,7 @@ GetOptions (
 
     "m|msg|message=s"	=> \$msg,
     "t|to|recipient=s"	=> \$to,
-    "v|verbose:1"	=> \$opt_v,
+    "v|verbose:2"	=> \$opt_v,
     ) or usage (1);
 
 use Data::Peek;
@@ -30,7 +30,7 @@ use Tk;
 use Tk::BrowseEntry;
 
 $opt_v and print STDERR "Connecting ...\n";
-my $gsm = GSM::Gnokii->new ()->connect;
+my $gsm = GSM::Gnokii->new ({ verbose => $opt_v })->connect;
 $opt_v and print STDERR "Get signal strength ...\n";
 my $ns  = $gsm->GetRF ();
 $opt_v and print STDERR "Get power status ...\n";

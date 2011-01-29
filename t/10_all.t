@@ -40,15 +40,4 @@ ok (my $get = {
 
 DDumper $get;
 
-if (0) {
-    my $err = $gsm->SendSMS ({
-	destination	=> $ENV{SMS_TEST_TO},
-	smscindex	=> 1,
-	report		=> 1,
-#	eightbit	=> 1,
-	message		=> "Sent from perl",
-	});
-    DDumper ({ err => $err, gsm => $gsm });
-    }
-
 done_testing;
