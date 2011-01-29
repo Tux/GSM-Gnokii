@@ -11,6 +11,8 @@ use GSM::Gnokii;
 
 my $gsm  = GSM::Gnokii->new ({ verbose => 1 })->connect ();
 
+diag ("GSM::Gnokii-".$gsm->version ()." using libgnokii-version = ".$gsm->{libgnokii_version});
+
 ok (my $get = {
     IMEI	=> $gsm->GetIMEI (),
     DateTime	=> $gsm->GetDateTime (),
