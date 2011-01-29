@@ -109,6 +109,17 @@ gn_memory_status MC_MemoryStatus   = {GN_MT_MC, 0, 0};
 gn_memory_status ON_MemoryStatus   = {GN_MT_ON, 0, 0};
 gn_memory_status RC_MemoryStatus   = {GN_MT_RC, 0, 0};
 
+static int set_error (HV *h, int n, char *s)
+{
+    unless (s) s = gn_error_print (n);
+    if (n) warn ("%s\n", s);
+    if (h) hv_puts (h, "ERROR", s);
+    return (n);
+    } /* set_error */
+#define set_errori(n) set_error (self, n, NULL);
+#define set_errors(s) set_error (self, 1, s);
+#define clear_err()   set_error (self, 0, "no error / no data");
+
 static void busterminate (void)
 {
     gn_lib_phone_close (state);
@@ -126,8 +137,7 @@ static int businit (HV *self)
 
     err = gn_lib_phoneprofile_load_from_file (configfile, configmodel, &state);
     unless (err == GN_ERR_NONE) {
-	hv_puts (self, "ERROR", gn_error_print (err));
-	warn ("%s\n", gn_error_print (err));
+	set_errori (err);
 	if (configfile)
 	    warn (_("File: %s\n"), configfile);
 	if (configmodel)
@@ -142,12 +152,11 @@ static int businit (HV *self)
 
     if (opt_v) warn ("Opening phone ...\n");
     unless ((err = gn_lib_phone_open (state)) == GN_ERR_NONE) {
-	hv_puts (self, "ERROR", gn_error_print (err));
-	warn ("%s\n", gn_error_print (err));
+	set_errori (err);
 	return 2;
 	}
 
-    hv_puts (self, "ERROR", "");
+    clear_err ();
     data = &state->sm_data;
     return 0;
     } /* businit */
@@ -163,7 +172,7 @@ static int gn_sm_func (HV *self, int op)
 
     op_error = gn_sm_functions (op, data, state);
     if (op_error == GN_ERR_NONE) {
-	hv_puts (self, "ERROR", "no error / no data");
+	clear_err ();
 	return (1);
 	}
 
@@ -263,8 +272,7 @@ ReadPhonebook (self, mem_type, start, end)
     if (mt == GN_MT_XX) {
 	char s_err[80];
 	sprintf (s_err, "ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)", mem_type);
-	hv_puts (self, "ERROR", s_err);
-	warn ("%s\n", s_err);
+	set_errors (s_err);
 	XSRETURN_UNDEF;
 	}
 
@@ -464,8 +472,7 @@ GetSMS (self, mem_type, index)
     if (message->memory_type == GN_MT_XX) {
 	char s_err[80];
 	sprintf (s_err, "ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)", mem_type);
-	hv_puts (self, "ERROR", s_err);
-	warn ("%s\n", s_err);
+	set_errors (s_err);
 	XSRETURN_UNDEF;
 	}
 
@@ -1360,13 +1367,13 @@ GetProfiles (self, start, end)
 
     warn ("GetProfile () @ %d (%s)\n", __LINE__, model);
     if (start < 0 || start > max_profiles) {
-	hv_puts (self, "ERROR", "Illegale profile id for start");
+	set_errors ("Illegale profile id for start");
 	XSRETURN_UNDEF;
 	}
     if (end == -1)
 	end = max_profiles;
     if (end < start || end > max_profiles) {
-	hv_puts (self, "ERROR", "Illegale profile id for end");
+	set_errors ("Illegale profile id for end");
 	XSRETURN_UNDEF;
 	}
 
@@ -1480,7 +1487,7 @@ SendSMS (self, smshash)
     curpos = 0;
     Zero (&(sms.remote.number), 1, sms.remote.number);
     if ((value = hv_fetch (smshash, "destination", 11, 0)) == NULL) {
-	hv_puts (self, "ERROR", "Destination must be set in smshash\n");
+	set_errors ("Destination must be set in smshash\n");
 	XSRETURN_UNDEF;
 	}
 
@@ -1515,7 +1522,7 @@ SendSMS (self, smshash)
 	warn ("SendSMS @ %d: message center number = %d\n", __LINE__, data->message_center->id);
 #endif
 	if (data->message_center->id < 1 || data->message_center->id > 5) {
-	    hv_puts (self, "ERROR", "Messagecenter index must be between 1 and 5");
+	    set_errors ("Messagecenter index must be between 1 and 5");
 	    XSRETURN_UNDEF;
 	    }
 
@@ -1542,7 +1549,7 @@ SendSMS (self, smshash)
 	for (i = 0; i < 4; i++) {
 	    t = strchr (s, ';');
 	    if (t) *t++ = 0;
-	    hv_puts (self, "ERROR", "loadbitmap not exported!");
+	    set_errors ("loadbitmap not exported!");
 	    XSRETURN_UNDEF;
 	    /*loadbitmap (&(sms.user_data[curpos].u.animation[i]), s, i ? GN_BMP_EMSAnimation2 : GN_BMP_EMSAnimation);*/
 	    s = t;
@@ -1579,13 +1586,13 @@ SendSMS (self, smshash)
 	else if (SvIOK (*value)) {	/* class 0 .. 3			*/
 	    class = SvIV (*value);
 	    if (class < 0 || class > 3) {
-		hv_puts (self, "ERROR", "Illegal classvalue");
+		set_errors ("Illegal classvalue");
 		XSRETURN_UNDEF;
 		}
 	    sms.dcs.u.general.m_class = class + 1;
 	    }
 	else {
-	    hv_puts (self, "ERROR", "Illegal classvalue");
+	    set_errors ("Illegal classvalue");
 	    XSRETURN_UNDEF;
 	    }
 	}
@@ -1625,7 +1632,7 @@ SendSMS (self, smshash)
 	}
     else {
 	if (hv_fetch (smshash, "ringtone", 8, 0) == NULL) {/* keine nachricht und kein ringone */
-	    hv_puts (self, "ERROR", "Need a message to send");
+	    set_errors ("Need a message to send");
 	    XSRETURN_UNDEF;
 	    }
 	}
@@ -1638,7 +1645,7 @@ SendSMS (self, smshash)
 #endif
     if (err == GN_ERR_NONE)
 	err = gn_sms_send (data, state);
-    hv_puts (self, "ERROR", err == GN_ERR_NONE ? "" : gn_error_print (err));
+    set_errori (err);
 #ifdef DEBUG_MODULE
     warn ("SendSMS @ %d after send\n", __LINE__);
 #endif
