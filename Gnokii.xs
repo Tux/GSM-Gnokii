@@ -1390,7 +1390,7 @@ GetProfiles (self, start, end)
     profile.number      = 0;
     data->profile       = &profile;
     data->ringtone_list = &rtl;
-    unless (gn_sm_funct (self, GN_OP_GetProfile))
+    unless (gn_sm_funct (self, GN_OP_GetProfile)) /* use GN_OP_GetActiveProfile? */
 	XSRETURN_UNDEF;
 
     warn ("GetProfile () @ %d\n", __LINE__);
