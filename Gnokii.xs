@@ -885,7 +885,7 @@ GetRingtone (self, location)
     if (opt_v) warn ("GetRingtone (%d)\n", location);
 
     Zero (&ringtone, 1, ringtone);
-    rawdata.data = buff;
+    rawdata.data   = buff;
     rawdata.length = sizeof (buff);
     clear_data ();
     data->ringtone = &ringtone;
