@@ -107,7 +107,7 @@ GSM::Gnokii - Perl extension libgnokii
 
   my $date_time    = $gsm->GetDateTime ();
   my $memory_state = $gsm->GetMemoryStatus ();
-  my $address_book = $gsm->ReadPhoneBook ("ME", 1, 0);
+  my $address_book = $gsm->GetPhoneBook ("ME", 1, 0);
 
 =head1 DESCRIPTION
 
@@ -491,7 +491,6 @@ STDERR handle.
 =head2 DeleteSMS
 =head2 DeleteWapBookmark
 =head2 GetTodo
-=head2 ReadPhonebook
 =head2 SetAlarm
 =head2 SetDateTime
 =head2 SetSpeedDial

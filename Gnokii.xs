@@ -253,7 +253,7 @@ _Initialize (self)
     /* _Initialise */
 
 void
-ReadPhonebook (self, mem_type, start, end)
+GetPhonebook (self, mem_type, start, end)
     HvObject		*self;
     char		*mem_type;
     int			start;
@@ -264,7 +264,7 @@ ReadPhonebook (self, mem_type, start, end)
     int			mt, i, j;
     AV			*pb;
 
-    if (opt_v) warn ("ReadPhonebook (%s, %d, %d)\n", mem_type, start, end);
+    if (opt_v) warn ("GetPhonebook (%s, %d, %d)\n", mem_type, start, end);
 
     clear_data ();
 
@@ -449,7 +449,7 @@ ReadPhonebook (self, mem_type, start, end)
 	}
 
     XS_RETURN (pb);
-    /* ReadPhonebook */
+    /* GetPhonebook */
 
 void
 GetSMS (self, mem_type, index)

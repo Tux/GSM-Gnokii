@@ -49,7 +49,7 @@ my @pb =
 	my $number = $_->{tel_cell} || $_->{number};
 	[ $idx, $number, $name ];
 	}
-    @{$gsm->ReadPhonebook ("ME", 1, 0) || []};
+    @{$gsm->GetPhonebook ("ME", 1, 0) || []};
 #$gsm->disconnect;
 
 my $status = "";

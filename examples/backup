@@ -19,7 +19,7 @@ print to_json ({
 #   Profile_1	=> $gsm->GetProfiles (0, 0),
     Memory	=> $gsm->GetMemoryStatus (),
     Power	=> $gsm->GetPowerStatus (),
-    PhoneBook	=> { map {( $_ => $gsm->ReadPhonebook ($_, 1, 0) )} "ME", "SM" },
+    PhoneBook	=> { map {( $_ => $gsm->GetPhonebook ($_, 1, 0) )} "ME", "SM" },
     SpeedDial	=> [ map { $gsm->GetSpeedDial ($_) } 1 .. 9 ],
     RF		=> $gsm->GetRF (),
     NetworkInfo	=> $gsm->GetNetworkInfo (),
