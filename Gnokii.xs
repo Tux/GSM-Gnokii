@@ -89,7 +89,6 @@ typedef AV AvObject;
 
 static struct gn_statemachine	*state;
 static gn_data			*data;
-static FILE			*logfile     = NULL;
 static char			*configfile  = NULL;
 static char			*configmodel = NULL;
 #ifdef DEBUG_MODULE
@@ -122,11 +121,12 @@ static int set_error (HV *h, int n, char *s)
 
 static void busterminate (void)
 {
-    gn_lib_phone_close (state);
-    gn_lib_phoneprofile_free (&state);
-    if (logfile)
-	fclose (logfile);
-    gn_lib_library_free ();
+    if (state) {
+	gn_lib_phone_close (state);
+	gn_lib_phoneprofile_free (&state);
+	gn_lib_library_free ();
+	state = NULL;
+	}
     } /* busterminate */
 
 static int businit (HV *self)
