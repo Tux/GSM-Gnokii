@@ -426,6 +426,14 @@ Returns a reference to a list of calendar note hashes, like:
   alarm            => "2011-11-11 11:11:11",
   date             => "2010-10-10 10:10:10",
 
+=head2 GetTodo (start, end)
+
+Returns a reference to a list of TODO note hashes, like:
+
+  location         => 1,
+  text             => "Finish GSM::Gnokii",
+  priority         => "low",
+
 =head2 GetWapSettings (location)
 
 Returns a reference to a hash with the WAP settings for given location, like:
@@ -490,7 +498,6 @@ STDERR handle.
 =head2 DeleteAllTodos
 =head2 DeleteSMS
 =head2 DeleteWapBookmark
-=head2 GetTodo
 =head2 SetAlarm
 =head2 SetDateTime
 =head2 SetSpeedDial

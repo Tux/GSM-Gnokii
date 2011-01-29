@@ -1283,61 +1283,41 @@ GetWapSettings (self, location)
     XS_RETURN (ws);
     /* GetWapSettings */
 
-int
-GetTodo (self, start, end, result)
-HvObject *self;
-int start;
-int end;
-AV *result;
-PREINIT:
-gn_todo_list *todolist;
-gn_todo *todo;
-HV *entry;
-int i;
-CODE:
-{
-  Newx  (todo,     1, gn_todo);
-  Newxz (todolist, 1, gn_todo_list);
-  for (i = start; i < end; i++)
-  {
-    clear_data ();
-    Zero (todo, 1, gn_todo);
-    todo->location = i;
-    data->todo = todo;
-    data->todo_list = todolist;
-    RETVAL = gn_sm_functions (GN_OP_GetToDo, data, state);
-    if (RETVAL == GN_ERR_NONE)
-    {
-      entry = newHV ();
-      hv_store (entry, "text", 4, sv_2mortal (newSVpv (todo->text, 0)), 0);
-      switch (todo->priority)
-      {
-      case GN_TODO_LOW:
-	hv_store (entry, "priority", 8, sv_2mortal (newSVpv ("low", 0)), 0);
-	break;
-      case GN_TODO_MEDIUM:
-	hv_store (entry, "priority", 8, sv_2mortal (newSVpv ("low", 0)), 0);
-	break;
-      case GN_TODO_HIGH:
-	hv_store (entry, "priority", 8, sv_2mortal (newSVpv ("low", 0)), 0);
-	break;
-      default:
-	hv_store (entry, "priority", 8, sv_2mortal (newSVpv ("unknown", 0)), 0);
-      }
-      av_addr (result, entry);
-    }
-#ifdef DEBUG_MODULE
-    else
-      printf ("%s\n",gn_error_print (RETVAL));
-#endif
-  }
-  Safefree (todo);
-  Safefree (todolist);
-  data->todo = NULL;
-  data->todo_list = NULL;
-}
-OUTPUT:
-        RETVAL
+void
+GetTodo (self, start, end)
+    HvObject	*self;
+    int		start;
+    int		end;
+
+  PPCODE:
+    gn_todo_list	todolist;
+    gn_todo		todo;
+    int			i;
+    AV			*tdl = newAV ();
+
+    if (opt_v) warn ("GetTodo (%d, %d)\n", start, end);
+
+    for (i = start; i < end; i++) {
+	clear_data ();
+	Zero (&todolist, 1, todolist);
+	Zero (&todo,     1, gn_todo);
+	todo.location   = i;
+	data->todo      = &todo;
+	data->todo_list = &todolist;
+	if (gn_sm_func (self, GN_OP_GetToDo)) {
+	    HV *t = newHV ();
+	    hv_puti (t, "location", i);
+	    hv_puts (t, "text",     todo.text);
+	    switch (todo.priority) {
+		case GN_TODO_LOW:    hv_puts (t, "priority", "low");     break;
+		case GN_TODO_MEDIUM: hv_puts (t, "priority", "medium");  break;
+		case GN_TODO_HIGH:   hv_puts (t, "priority", "high");    break;
+		default:             hv_puts (t, "priority", "unknown"); break;
+		}
+	    av_addr (tdl, t);
+	    }
+	}
+    XS_RETURN (tdl);
 
 void
 GetProfiles (self, start, end)
