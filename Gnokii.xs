@@ -704,6 +704,7 @@ GetIMEI (self)
 
     if (opt_v) warn ("GetIMEI ()\n");
 
+    clear_data ();
     Zero (imei,         64, char);
     Zero (model,        64, char);
     Zero (rev,          64, char);
@@ -733,6 +734,7 @@ GetSecurity (self)
 
     if (opt_v) warn ("GetSecurity ()\n");
 
+    clear_data ();
     Zero (&sc, 1, sc);
     sc.type = GN_SCT_SecurityCode;
     data->security_code = &sc;
@@ -770,6 +772,7 @@ GetLogo (self, logodata)
 
     if (opt_v) warn ("GetLogo ({ type => ... })\n");
 
+    clear_data ();
     Zero (&bitmap, 1, gn_bmp);
     type = SvPV_nolen (*hv_fetch (logodata, "type", 4, 0));
 
