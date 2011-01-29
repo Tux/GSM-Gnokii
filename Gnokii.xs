@@ -1911,16 +1911,17 @@ CODE:
 OUTPUT:
         RETVAL
 
-int
+void
 DeleteAllTodos (self)
-HvObject *self;
-CODE:
-{
-        clear_data ();
-	RETVAL = gn_sm_functions (GN_OP_DeleteAllToDos, data, state);
-}
-OUTPUT:
-        RETVAL
+    HvObject	*self;
+
+  PPCODE:
+    int err;
+
+    clear_data ();
+    err = gn_sm_functions (GN_OP_DeleteAllToDos, data, state);
+    set_errori (err);
+    XSRETURNi (err);
 
 int
 WriteCalendarNote (self, index, calhash)

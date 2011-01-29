@@ -492,10 +492,12 @@ Supported options:
 Prints the string representation of the C<err> value to the current
 STDERR handle.
 
+=head2 DeleteAllTodos
+
+Will delete B<all> TODO items.
 
 =head2 ActivateWapSetting
 =head2 CreateSMSFolder
-=head2 DeleteAllTodos
 =head2 DeleteSMS
 =head2 DeleteWapBookmark
 =head2 GetFileList
