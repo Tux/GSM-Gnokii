@@ -537,6 +537,24 @@ For SMS, these are likely to be valid:
   TE  SMS Templates
   F1  SMS Folder 1 (..20)
 
+=head1 OTHER RESOURCES
+
+  Gnokii home:       http://www.gnokii.org
+
+  To get the most recent development branch:
+
+    $ git clone git://git.savannah.nongnu.org/gnokii.git gnokii-git
+
+  To view the most recent changes:
+
+    http://git.savannah.gnu.org/gitweb/?p=gnokii.git;a=summary
+
+  All gnokii projects:
+
+    http://git.savannah.gnu.org/gitweb/?s=gnokii
+
+  GSMI/GSMD::Gnokii: http://www.agouros.de/gnokii/
+
 =head1 AUTHOR
 
 H.Merijn Brand 
