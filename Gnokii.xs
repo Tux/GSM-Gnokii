@@ -186,6 +186,78 @@ static int gn_sm_func (HV *self, int op)
     return (0);
     } /* gn_sm_func */
 
+static char *filetype2str (int type)
+{
+    switch (type) {
+	case GN_FT_None:        return ("None");
+	case GN_FT_NOL:         return ("NOL");
+	case GN_FT_NGG:         return ("NGG");
+	case GN_FT_NSL:         return ("NSL");
+	case GN_FT_NLM:         return ("NLM");
+	case GN_FT_BMP:         return ("BMP");
+	case GN_FT_OTA:         return ("OTA");
+	case GN_FT_XPMF:        return ("XPMF");
+	case GN_FT_RTTTL:       return ("RTTTL");
+	case GN_FT_OTT:         return ("OTT");
+	case GN_FT_MIDI:        return ("MIDI");
+	case GN_FT_NOKRAW_TONE: return ("NOKRAW_TONE");
+	case GN_FT_GIF:         return ("GIF");
+	case GN_FT_JPG:         return ("JPG");
+	case GN_FT_MID:         return ("MID");
+	case GN_FT_NRT:         return ("NRT");
+	case GN_FT_PNG:         return ("PNG");
+	default:                return ("unknown");
+	}
+    } /* filetype2str */
+
+static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
+{
+    AV	*t = newAV ();
+    int	i;
+
+    if (opt_v) warn ("Traverse path %s\n", path);
+
+    for (i = 0; i < fl->file_count; i++) {
+	HV	*f = newHV ();
+	char	date[32];
+	gn_file	*fi = fl->files[i];
+
+	hv_puts (f, "type",      filetype2str (fi->filetype));
+	hv_puts (f, "id",        fi->id);
+	hv_puts (f, "name",      fi->name);
+	sprintf (date, "%04d-%02d-%02d %02d:%02d:%02d",
+	    fi->year, fi->month, fi->day, fi->hour, fi->minute, fi->second);
+	hv_puts (f, "date",      date);
+	hv_puti (f, "size",      fi->file_length);
+	hv_puti (f, "togo",      fi->togo);
+	hv_puti (f, "just_sent", fi->just_sent);
+	hv_puti (f, "folder_id", fi->folderId);
+	hv_puts (f, "file",      fi->file);
+
+	/* Check if this is a folder itself */
+	if (fi->file_length == 0 && fi->name && *(fi->name)) {	/* Otherwise it would be a file ... */
+	    char		dir[512];
+	    gn_file_list	dl;
+
+	    clear_data ();
+	    Zero (&dl, 1, dl);
+	    sprintf (dir, "%s\\%s", path, fi->name);
+	    sprintf (dl.path, "%s\\*", dir);
+	    data->file_list = &dl;
+	    if (gn_sm_func (self, GN_OP_GetFileList)) {
+		hv_puts (f, "path",		dl.path);
+		hv_puti (f, "file_count",	dl.file_count);
+		hv_puti (f, "dir_size",		dl.size);
+		hv_putr (f, "tree", walk_tree (self, dir, &dl));
+		}
+	    }
+
+	free (fi);
+	av_addr (t, f);
+	}
+    return (t);
+    } /* walk_tree */
+
 MODULE = GSM::Gnokii		PACKAGE = GSM::Gnokii
 
 void
@@ -1434,6 +1506,46 @@ GetProfiles (self, start, end)
 	}
     XS_RETURNr (pl);
     /* GetProfiles */
+
+void
+GetDirTree (self, memorytype)
+    HvObject		*self;
+    char		*memorytype;
+
+  PPCODE:
+    char		*mt;
+    gn_file_list	fl;
+    HV			*dt;
+    int			i;
+
+    if (opt_v) warn ("GetDirTree (%s)\n", memorytype);
+
+         if (!strcmp (memorytype, "ME"))
+	mt = "A:";
+    else if (!strcmp (memorytype, "SM"))
+	mt = "B:";
+    else {
+	set_errors ("usage: GetDirTree ('ME' | 'SM')");
+	XSRETURN_UNDEF;
+	}
+
+    clear_data ();
+    Zero (&fl, 1, fl);
+    sprintf (fl.path, "%s\\*", mt);
+    data->file_list = &fl;
+    unless (gn_sm_func (self, GN_OP_GetFileList))
+	XSRETURN_UNDEF;
+
+    dt = newHV ();
+    hv_puts (dt, "memorytype",	memorytype);
+    hv_puts (dt, "path",	fl.path);
+    hv_puti (dt, "file_count",	fl.file_count);
+    hv_puti (dt, "dir_size",	fl.size);
+
+    hv_putr (dt, "tree",	walk_tree (self, mt, &fl));
+
+    XS_RETURNr (dt);
+    /* GetDirTree */
 
 void
 SendSMS (self, smshash)

@@ -501,6 +501,50 @@ Will delete B<all> TODO items.
 Set and enable alarm. Hour should be between 0 and 23, Minute between
 0 and 59.
 
+=head2 GetDirTree (memorytype)
+
+Return a reference to a (recursive) list of folders and files in the
+phone. The C<memorytype> should be either C<"ME"> for phone memory,
+which will descend into C<A:\*>, or C<"SM">, which will descend into
+the SIM card C<B:\*>. It will return a hash refence like:
+
+  dir_size         => 128,
+  file_count       => 18,
+  memorytype       => "ME",
+  path             => "A:\\*",
+  tree             => [ ... ]
+
+The C<tree> entry in the hash is a list of entries in the folder, of
+which each is a reference to a hash with entry information like:
+
+  date             => "2006-01-01 00:00:00",
+  file             => undef,
+  folder_id        => 0,
+  id               => undef,
+  just_sent        => 0,
+  name             => "FIM_punique_id",
+  size             => 66,
+  togo             => 0,
+  type             => "None",
+
+If the entry is a folder itself, it will be extended with tree info
+like in the top node:
+
+  date             => "2006-01-01 00:00:00",
+  dir_size         => 128,
+  file             => undef,
+  file_count       => 13,
+  folder_id        => 0,
+  id               => undef,
+  just_sent        => 0,
+  name             => "predefgallery",
+  path             => "A:\\predefgallery\\*",
+  size             => 0,
+  togo             => 0,
+  tree             => [ ... ]
+
+Note that these calls might take a long time with big trees.
+
 =head2 ActivateWapSetting
 =head2 CreateSMSFolder
 =head2 DeleteSMS

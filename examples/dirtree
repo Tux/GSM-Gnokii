@@ -1,0 +1,24 @@
+#!/pro/bin/perl
+
+use strict;
+use warnings;
+use autodie;
+
+use GSM::Gnokii;
+use JSON;
+
+my $gsm = GSM::Gnokii->new ({ verbose => 9 })->connect;
+
+binmode STDOUT, ":encoding(utf-8)";
+
+print to_json ({
+    DirTree => {
+	ME  => $gsm->GetDirTree ("ME"),
+	SM  => $gsm->GetDirTree ("SM"),
+	}
+    }, {
+	utf8	=> 1,
+	pretty	=> 1,
+	});
+
+$gsm->disconnect;
