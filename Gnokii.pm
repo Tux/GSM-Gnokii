@@ -144,7 +144,7 @@ Connect to the phone.
 
 =head2 disconnect
 
-Disonnects the phone.
+Disconnects the phone.
 
 =head2 GetProfiles (start, end)
 
@@ -385,7 +385,7 @@ All is well: message was successfully sent.
 =item *
 
 Any other value is the return code from the call that sends the message.
-The value of C<$gsm->{ERROR}> is set accordingy.
+The value of C<$gsm->{ERROR}> is set accordingly.
 
 =back
 
@@ -506,7 +506,7 @@ Set and enable alarm. Hour should be between 0 and 23, Minute between
 Return a reference to a (recursive) list of folders and files in the
 phone. The C<memorytype> should be either C<"ME"> for phone memory,
 which will descend into C<A:\*>, or C<"SM">, which will descend into
-the SIM card C<B:\*>. It will return a hash refence like:
+the SIM card C<B:\*>. It will return a hash reference like:
 
   dir_size         => 128,
   file_count       => 18,
