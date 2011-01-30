@@ -14,7 +14,7 @@ our @ISA = qw(Exporter DynaLoader);
 our %EXPORT_TAGS = ( all => [ qw( ) ] );
 our @EXPORT_OK   = ( @{ $EXPORT_TAGS{all} } );
 our @EXPORT      = qw( );
-our $VERSION     = "0.03";
+our $VERSION     = "0.04";
 
 my @MEMORYTYPES = qw(
     ME SM FD ON EN DC RC MC LD MT TA CB IN OU AR TE
@@ -520,11 +520,18 @@ which each is a reference to a hash with entry information like:
   date             => "2006-01-01 00:00:00",
   file             => undef,
   folder_id        => 0,
-  id               => undef,
-  just_sent        => 0,
   name             => "FIM_punique_id",
   size             => 66,
-  togo             => 0,
+  type             => "None",
+
+If the entry has a size greater than 0, there might be added a file_id:
+
+  date             => "2005-01-01 12:00:00",
+  file             => undef,
+  folder_id        => 0,
+  id               => "00.00.10.00.01.8e",
+  name             => "Flower2.jpg",
+  size             => 10203,
   type             => "None",
 
 If the entry is a folder itself, it will be extended with tree info
@@ -535,12 +542,9 @@ like in the top node:
   file             => undef,
   file_count       => 13,
   folder_id        => 0,
-  id               => undef,
-  just_sent        => 0,
   name             => "predefgallery",
   path             => "A:\\predefgallery\\*",
   size             => 0,
-  togo             => 0,
   tree             => [ ... ]
 
 Note that these calls might take a long time with big trees.

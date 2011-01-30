@@ -219,36 +219,47 @@ static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
 
     for (i = 0; i < fl->file_count; i++) {
 	HV	*f = newHV ();
-	char	date[32];
+	char	date[32], full_name[512];
 	gn_file	*fi = fl->files[i];
+	int	is_file;
 
 	hv_puts (f, "type",      filetype2str (fi->filetype));
-	hv_puts (f, "id",        fi->id);
 	hv_puts (f, "name",      fi->name);
 	sprintf (date, "%04d-%02d-%02d %02d:%02d:%02d",
 	    fi->year, fi->month, fi->day, fi->hour, fi->minute, fi->second);
 	hv_puts (f, "date",      date);
 	hv_puti (f, "size",      fi->file_length);
-	hv_puti (f, "togo",      fi->togo);
-	hv_puti (f, "just_sent", fi->just_sent);
 	hv_puti (f, "folder_id", fi->folderId);
 	hv_puts (f, "file",      fi->file);
 
-	/* Check if this is a folder itself */
-	if (fi->file_length == 0 && fi->name && *(fi->name)) {	/* Otherwise it would be a file ... */
-	    char		dir[512];
+	snprintf (full_name, 512, "%s\\%s", path, fi->name);
+	if (*(fi->name)) {
+	    gn_file ff;
+
+	    Zero (&ff, 1, ff);
+	    strcpy (ff.name, full_name);
+	    clear_data ();
+	    data->file = &ff;
+	    if (gn_sm_func (self, GN_OP_GetFileId)) {
+		char buf[16];
+		sprintf (buf, "%02x.%02x.%02x.%02x.%02x.%02x",
+		    ff.id[0], ff.id[1], ff.id[2], ff.id[3], ff.id[4], ff.id[5]);
+		hv_puts (f, "id", buf);
+		}
+	    }
+
+	if (fi->file_length == 0 && *(fi->name)) {	/* dir ? */
 	    gn_file_list	dl;
 
 	    clear_data ();
 	    Zero (&dl, 1, dl);
-	    sprintf (dir, "%s\\%s", path, fi->name);
-	    sprintf (dl.path, "%s\\*", dir);
+	    sprintf (dl.path, "%s\\*", full_name);
 	    data->file_list = &dl;
-	    if (gn_sm_func (self, GN_OP_GetFileList)) {
-		hv_puts (f, "path",		dl.path);
+	    if (gn_sm_func (self, GN_OP_GetFileList) && dl.file_count > 0) {
+		hv_puts (f, "path",		full_name);
 		hv_puti (f, "file_count",	dl.file_count);
 		hv_puti (f, "dir_size",		dl.size);
-		hv_putr (f, "tree", walk_tree (self, dir, &dl));
+		hv_putr (f, "tree", walk_tree (self, full_name, &dl));
 		}
 	    }
 
