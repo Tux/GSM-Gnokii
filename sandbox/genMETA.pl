@@ -58,7 +58,7 @@ if ($check) {
     use Test::MinimumVersion;
     # All other minimum version checks done in xt
     all_minimum_version_ok ($req_vsn, { paths =>
-	[ "t", "examples", "Gnokii.pm", "Makefile.PL", "test.pl" ]});
+	[ "t", "examples", "Gnokii.pm", "Makefile.PL" ]});
     }
 elsif ($opt_v) {
     print @yml;

@@ -7,9 +7,9 @@ Gnokii.xs
 perlobject.map
 typemap
 ppport.h
-test.pl
 t/00_pod.t
 t/01_pod.t
+t/10_all.t
 xt/00_perlversion.t
 examples/backup
 examples/dirtree
