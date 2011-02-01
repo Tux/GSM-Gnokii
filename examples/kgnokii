@@ -51,10 +51,11 @@ my @pb =
 	}
     @{$gsm->GetPhonebook ("ME", 1, 0) || []};
 
-my $status = "";
+my ($t_number, $t_name, $t_entry, $status) = ("number", "name", "", "");
 
 if ($msg =~ m/\S/ && @pb == 1) {
     $opt_v and print STDERR "Sending message ...\n";
+    $t_name = $pb[0][2];
     my $err = send_msg ($pb[0][1], $msg);
     print "$status\n";
     exit $err;
@@ -114,7 +115,6 @@ my $f_btn = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -
     get_levels ();
     }
 
-my ($t_number, $t_name, $t_entry) = ("number", "name", "");
 @pb == 1 and ($t_number, $t_name) = ($pb[0][1], $pb[0][2]);
 $f_tgt->Label (
     -text		=> "To",
@@ -198,11 +198,12 @@ sub send_msg
     status "Sending ...", "Black";
     my $err = $gsm->SendSMS ({
 	destination	=> $dest,
-	smscindex	=> 1,
+	message		=> $message,
+#	smscindex	=> 1,
 #	smscnumber	=> "+31653131313",
 #	report		=> 1,
-	eightbit	=> $b8,
-	message		=> $message,
+#	eightbit	=> $b8,
+#	class		=> undef,
 #	validity	=> 173,	# 1 week
 	});
     if (defined $err and $err == 0) {

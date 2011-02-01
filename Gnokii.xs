@@ -210,6 +210,23 @@ static char *filetype2str (int type)
 	}
     } /* filetype2str */
 
+static gn_gsm_number_type get_number_type (const char *number)
+{
+    gn_gsm_number_type type = GN_GSM_NUMBER_Unknown;
+
+    unless (number)	return type;
+    if (*number == '+') {
+	type = GN_GSM_NUMBER_International;
+	number++;
+	}
+    while (*number) {
+	unless (isdigit (*number))
+	    return GN_GSM_NUMBER_Alphanumeric;
+	number++;
+	}
+    return type;
+    } /* get_number_type */
+
 static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
 {
     AV	*t = newAV ();
@@ -1566,29 +1583,89 @@ SendSMS (self, smshash)
   PPCODE:
     gn_sms	sms;
     SV		**value;
-    int		curpos, err = GN_ERR_NONE;
-    int		input_len;
+    char	*str;
+    STRLEN	l;
+    int		err = GN_ERR_NONE;
 
     if (opt_v) warn ("SendSMS ({ destination => ..., message => ... })\n");
+    /* Options in gnokii:
+     * smsc
+     * smscno
+     * long
+     * report
+     * validity
+     * class
+     * 8bit
+     * imelody
+     * animation
+     * concat
+     * wappush
+     */
 
     clear_data ();
     gn_sms_default_submit (&sms);
-    curpos = 0;
-    Zero (&(sms.remote.number), 1, sms.remote.number);
-    if ((value = hv_fetch (smshash, "destination", 11, 0)) == NULL) {
-	set_errors ("Destination must be set in smshash\n");
+
+    if ((value = hv_fetch (smshash, "report", 6, 0)) && SvTRUE (*value))
+	sms.delivery_report = true;
+    else
+	sms.delivery_report = false;
+    sms.type = GN_SMS_MT_Submit;
+
+    unless ((value = hv_fetch (smshash, "destination", 11, 0))) {
+	set_errors ("destination is a required attribute in SendSMS ()");
 	XSRETURN_UNDEF;
 	}
 
-    memcpy (&(sms.remote.number), SvPV_nolen (*value), sizeof (sms.remote.number) - 1);
-    if (sms.remote.number[0] == '+')
-	sms.remote.type = GN_GSM_NUMBER_International;
-    else
-	sms.remote.type = GN_GSM_NUMBER_Unknown;
+    str = SvPV (*value, l);
+    if (l >= sizeof (sms.remote.number)) {
+	set_errors ("Destination is too long");
+	XSRETURN_UNDEF;
+	}
+    strcpy (sms.remote.number, str);
+    sms.remote.type = get_number_type (str);
+    if (sms.remote.type == GN_GSM_NUMBER_Alphanumeric) {
+	set_errors ("Invalid phone number");
+	XSRETURN_UNDEF;
+	}
+#ifdef DEBUG_MODULE
+    warn ("SendSMS: destination set to '%s'\n", str);
+#endif
+
+    if ((value = hv_fetch (smshash, "message", 7, 0)) ||
+        (value = hv_fetch (smshash, "text",    4, 0))) {
+	char		*text = SvPV (*value, l);
+	unsigned int	i = 0;
+#ifdef DEBUG_MODULE
+	warn ("SendSMS: got text: '%s' (%d)\n", text, l);
+#endif
+
+	if (l > GN_SMS_MAX_LENGTH) {
+	    set_errors ("No support (yet) for long messages");
+	    XSRETURN_UNDEF;
+	    }
+
+	sms.udh.length = 0;
+	sms.user_data[0].type = GN_SMS_DATA_Text;
+	strncpy (sms.user_data[0].u.text, text, GN_SMS_MAX_LENGTH + 1);
+	sms.user_data[0].u.text[GN_SMS_MAX_LENGTH] = '\0';
+
+	while (sms.user_data[i].type != GN_SMS_DATA_None) {
+	    if ((sms.user_data[i].type == GN_SMS_DATA_Text      ||
+		 sms.user_data[i].type == GN_SMS_DATA_NokiaText ||
+		 sms.user_data[i].type == GN_SMS_DATA_iMelody) &&
+		 !gn_char_def_alphabet (sms.user_data[i].u.text))
+		sms.dcs.u.general.alphabet = GN_SMS_DCS_UCS2;
+	    i++;
+	    }
+	}
+    else {
+	set_errors ("text is a required attribute in SendSMS ()");
+	XSRETURN_UNDEF;
+	}
 
     if ((value = hv_fetch (smshash, "smscnumber", 10, 0))) {
 #ifdef DEBUG_MODULE
-	warn ("SendSMS: got smsc: '%s'\n", SvPV_nolen (*value));
+	warn ("SendSMS: got smsc number: '%s'\n", SvPV_nolen (*value));
 #endif
 	strncpy (sms.smsc.number, SvPV_nolen (*value), sizeof (sms.smsc.number) - 1);
 	if (sms.smsc.number[0] == '+')
@@ -1596,13 +1673,12 @@ SendSMS (self, smshash)
 	else
 	    sms.smsc.type = GN_GSM_NUMBER_Unknown;
 	}
-#ifdef DEBUG_MODULE
     else
-	warn ("SendSMS: No smscn number\n");
-#endif
-
     if ((value = hv_fetch (smshash, "smscindex", 9, 0))) {
 	gn_sms_message_center messagecenter;
+#ifdef DEBUG_MODULE
+	warn ("SendSMS: got smsc index: %i\n", SvIV (*value));
+#endif
 
 	Zero (&messagecenter, 1, messagecenter);
 	messagecenter.id = SvIV (*value);
@@ -1616,117 +1692,34 @@ SendSMS (self, smshash)
 	    }
 
 	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
-	    strcpy (sms.smsc.number, data->message_center->smsc.number);
+	    snprintf (sms.smsc.number, sizeof (sms.smsc.number), "%s", data->message_center->smsc.number);
 	    sms.smsc.type = data->message_center->smsc.type;
 	    }
 #ifdef DEBUG_MODULE
 	warn ("SendSMS @ %d: smsc number = %s\n", __LINE__, sms.smsc.number);
 #endif
 	}
+
+    unless (sms.smsc.number[0]) {
 #ifdef DEBUG_MODULE
-    else
-	printf ("No index\n");
+	warn ("SendSMS @ %d: set default smsc\n", __LINE__);
 #endif
-
-    if ((value = hv_fetch (smshash, "animation", 9, 0))) {
-	char	buf[10240];
-	char	*s = buf, *t;
-	int	i;
-
-	strcpy (buf, SvPV_nolen (*value));
-	sms.user_data[curpos].type = GN_SMS_DATA_Animation;
-	for (i = 0; i < 4; i++) {
-	    t = strchr (s, ';');
-	    if (t) *t++ = 0;
-	    set_errors ("loadbitmap not exported!");
-	    XSRETURN_UNDEF;
-	    /*loadbitmap (&(sms.user_data[curpos].u.animation[i]), s, i ? GN_BMP_EMSAnimation2 : GN_BMP_EMSAnimation);*/
-	    s = t;
+	data->message_center = calloc (1, sizeof (gn_sms_message_center));
+	data->message_center->id = 1;
+	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
+	    snprintf (sms.smsc.number, sizeof (sms.smsc.number), "%s", data->message_center->smsc.number);
+	    sms.smsc.type = data->message_center->smsc.type;
 	    }
-	sms.user_data[++curpos].type = GN_SMS_DATA_Animation;
-	curpos = -1;
-	} /* hier kommt ein else bla fuer den ringtonefall */
-    else if ((value = hv_fetch (smshash, "ringtone", 8, 0))) {
-	gn_ringtone	ringtone;
-	gn_raw_data	rawdata;
-	unsigned char	buff[512];
-	char		filename[512];
-	Zero (&ringtone, 1, ringtone);
-
-	strcpy (filename, SvPV_nolen (*value));
-	rawdata.data   = buff;
-	rawdata.length = sizeof (buff);
-	clear_data ();
-	data->ringtone = &ringtone;
-	data->raw_data = &rawdata;
-	sms.user_data[0].type = GN_SMS_DATA_Ringtone;
-	sms.user_data[1].type = GN_SMS_DATA_None;
-	err = gn_file_ringtone_read (filename, &(sms.user_data[0].u.ringtone));
+	free (data->message_center);
 	}
-
-    if ((value = hv_fetch (smshash, "report", 6, 0)))
-	sms.delivery_report = true;
-
-    if ((value = hv_fetch (smshash, "class", 5, 0))) {
-	int class;
-
-	if (!SvOK (*value))		/* undef: Do not use class	*/
-	    sms.dcs.u.general.m_class = 0;
-	else if (SvIOK (*value)) {	/* class 0 .. 3			*/
-	    class = SvIV (*value);
-	    if (class < 0 || class > 3) {
-		set_errors ("Illegal classvalue");
-		XSRETURN_UNDEF;
-		}
-	    sms.dcs.u.general.m_class = class + 1;
-	    }
-	else {
-	    set_errors ("Illegal classvalue");
-	    XSRETURN_UNDEF;
-	    }
-	}
+#ifdef DEBUG_MODULE
+    warn ("SendSMS @ %d: set validity\n", __LINE__);
+#endif
 
     if ((value = hv_fetch (smshash, "validity", 8, 0)))
 	sms.validity = SvIV (*value);
-
-    if ((value = hv_fetch (smshash, "eightbit", 8, 0))) {
-	sms.dcs.u.general.alphabet = GN_SMS_DCS_8bit;
-	input_len = GN_SMS_8BIT_MAX_LENGTH;
-	}
-
-    /* this is completely borrowed from gnokii.c */
 #ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d : SMSCNo = %s\n", __LINE__, sms.smsc.number);
-#endif
-    unless (sms.smsc.number[0]) {
-	Newxz (data->message_center, 1, gn_sms_message_center);
-	data->message_center->id = 1;
-	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
-	    strcpy (sms.smsc.number, data->message_center->smsc.number);
-	    sms.smsc.type = data->message_center->smsc.type;
-	    }
-	Safefree (data->message_center);
-	}
-
-    unless (sms.smsc.type)
-	sms.smsc.type = GN_GSM_NUMBER_Unknown;
-
-    if ((value = hv_fetch (smshash, "message", 7, 0))) {
-	memset (sms.user_data[curpos].u.text, 0, GN_SMS_MAX_LENGTH);
-	strcpy ((char *)sms.user_data[curpos].u.text, SvPV_nolen (*value));
-	sms.user_data[curpos].type = GN_SMS_DATA_Text;
-	unless (gn_char_def_alphabet (sms.user_data[curpos].u.text))
-	    sms.dcs.u.general.alphabet = GN_SMS_DCS_UCS2;
-	sms.user_data[++curpos].type = GN_SMS_DATA_None;
-	}
-    else {
-	if (hv_fetch (smshash, "ringtone", 8, 0) == NULL) {/* keine nachricht und kein ringone */
-	    set_errors ("Need a message to send");
-	    XSRETURN_UNDEF;
-	    }
-	}
-#ifdef DEBUG_MODULE
-    warn ("SendSMS @ %d: curpos %d, msg: '%s'\n", __LINE__, curpos, sms.user_data[curpos - 1].u.text);
+    warn ("SendSMS @ %d: msg: '%s'\n", __LINE__, sms.user_data[0].u.text);
 #endif
     data->sms = &sms;
 #ifdef DEBUG_MODULE
