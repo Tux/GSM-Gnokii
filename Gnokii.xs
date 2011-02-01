@@ -327,6 +327,11 @@ GetPhonebook (self, mem_type, start, end)
 
     clear_data ();
 
+    if (start < 0 || start > 255) {
+	set_errors ("phonebook location should be in valid range 0..255");
+	XSRETURN_UNDEF;
+	}
+
     mt = gn_str2memory_type (mem_type);
     if (mt == GN_MT_XX) {
 	char s_err[80];
@@ -335,7 +340,7 @@ GetPhonebook (self, mem_type, start, end)
 	XSRETURN_UNDEF;
 	}
 
-    if (end <= 0 || end == IV_MAX) {
+    if (end <= 0 || end > 255) {
 	gn_memory_status ms = {mt, 0, 0};
 	data->memory_status = &ms;
 	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
@@ -913,6 +918,24 @@ GetCalendarNotes (self, start, end)
 
     if (opt_v) warn ("GetCalenderNotes (%d, %d)\n", start, end);
 
+    if (start < 0 || start > 255) {
+	set_errors ("calendarnote location should be in valid range 0..255");
+	XSRETURN_UNDEF;
+	}
+
+    if (end <= 0 || end > 255) {
+	end = 255;
+	/* NYI - find last note location used
+	gn_memory_status ms = {mt, 0, 0};
+	data->memory_status = &ms;
+	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
+	    end = ms.used + 1;
+	    if (end < start)
+		end = start;
+	    }
+	*/
+	}
+
     for (i = start; i <= end; i++) {
 	clear_data ();
 	calendarnote.location = i;
@@ -1024,6 +1047,24 @@ GetSMSCenter (self, start, end)
     AV				*scl = newAV ();
 
     if (opt_v) warn ("GetSMSCenter (%d, %d)\n", start, end);
+
+    if (start < 0 || start > 255) {
+	set_errors ("messagecenter location should be in valid range 0..255");
+	XSRETURN_UNDEF;
+	}
+
+    if (end <= 0 || end > 255) {
+	end = 255;
+	/* NYI - find last smscenter used
+	gn_memory_status ms = {mt, 0, 0};
+	data->memory_status = &ms;
+	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
+	    end = ms.used + 1;
+	    if (end < start)
+		end = start;
+	    }
+	*/
+	}
 
     for (i = start; i <= end; i++) {
 	HV *mc = newHV ();
@@ -1383,6 +1424,24 @@ GetTodo (self, start, end)
 
     if (opt_v) warn ("GetTodo (%d, %d)\n", start, end);
 
+    if (start < 0 || start > 255) {
+	set_errors ("todo location should be in valid range 0..255");
+	XSRETURN_UNDEF;
+	}
+
+    if (end <= 0 || end > 255) {
+	end = 255;
+	/* NYI - find last todo location used
+	gn_memory_status ms = {mt, 0, 0};
+	data->memory_status = &ms;
+	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
+	    end = ms.used + 1;
+	    if (end < start)
+		end = start;
+	    }
+	*/
+	}
+
     for (i = start; i < end; i++) {
 	clear_data ();
 	Zero (&todolist, 1, todolist);
@@ -1432,15 +1491,23 @@ GetProfiles (self, start, end)
 	max_profiles = 3;
 
     warn ("GetProfile () @ %d (%s)\n", __LINE__, model);
+
     if (start < 0 || start > max_profiles) {
-	set_errors ("Illegale profile id for start");
+	set_errors ("profile location should be in valid range 1..7");
 	XSRETURN_UNDEF;
 	}
-    if (end == -1)
+
+    if (end <= 0 || end > max_profiles) {
 	end = max_profiles;
-    if (end < start || end > max_profiles) {
-	set_errors ("Illegale profile id for end");
-	XSRETURN_UNDEF;
+	/* NYI - find last profile used
+	gn_memory_status ms = {mt, 0, 0};
+	data->memory_status = &ms;
+	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
+	    end = ms.used + 1;
+	    if (end < start)
+		end = start;
+	    }
+	*/
 	}
 
     warn ("GetProfile () @ %d\n", __LINE__);
