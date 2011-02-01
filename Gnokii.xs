@@ -2109,65 +2109,92 @@ DeleteAllTodos (self)
     set_errori (err);
     XSRETURNi (err);
 
-int
-WriteCalendarNote (self, index, calhash)
-HvObject *self;
-int index;
-HV *calhash;
-PREINIT:
-gn_calnote *calnote;
-char *buf;
-time_t t;
-time_t *t2;
-gn_timestamp *timestamp;
-CODE:
-{
-        clear_data ();
-	Newxz (calnote, 1, gn_calnote);
-	calnote->location = index;
-	strcpy (calnote->text, SvPV_nolen (*hv_fetch (calhash, "text", 4, 0)));
-	t = (time_t)SvIV (*hv_fetch (calhash, "date", 4, 0));
-	t2 = &t;
-	timestamp = &(calnote->time);
-	HASH_TO_GSMDT (timestamp, t2);
-	buf = SvPV_nolen (*hv_fetch (calhash, "type", 4, 0));
-	if (strcasecmp (buf, "miscellaneous"))
-	  calnote->type = GN_CALNOTE_REMINDER;
-	else if (strcasecmp (buf, "call"))
-	{
-	  calnote->type = GN_CALNOTE_CALL;
-	  strcpy (calnote->phone_number, SvPV_nolen (*hv_fetch (calhash, "number", 6, 0)));
-	}
-	else if (strcasecmp (buf, "meeting"))
-	  calnote->type = GN_CALNOTE_MEETING;
-	else if (strcasecmp (buf, "birthday"))
-	  calnote->type = GN_CALNOTE_BIRTHDAY;
-	if (hv_fetch (calhash, "alarm", 5, 0) != NULL) {
-	  t = (time_t)SvIV (*hv_fetch (calhash, "alarm", 5, 0));
-	  t2 = &t;
-	  calnote->alarm.enabled = true;
-	  timestamp = &(calnote->alarm.timestamp);
-	  HASH_TO_GSMDT (timestamp, t2);
-	  }
-	buf = SvPV_nolen (*hv_fetch (calhash, "recurrence", 10, 0));
-	if (!strcasecmp (buf, "NEVER"))
-	  calnote->recurrence = GN_CALNOTE_NEVER;
-	else if (!strcasecmp (buf, "DAILY"))
-	  calnote->recurrence = GN_CALNOTE_DAILY;
-	else if (!strcasecmp (buf, "WEEKLY"))
-	  calnote->recurrence = GN_CALNOTE_WEEKLY;
-	else if (!strcasecmp (buf, "2WEEKLY"))
-	  calnote->recurrence = GN_CALNOTE_2WEEKLY;
-	else if (!strcasecmp (buf, "YEARLY"))
-	  calnote->recurrence = GN_CALNOTE_YEARLY;
-	data->calnote = calnote;
-	RETVAL = gn_sm_functions (GN_OP_WriteCalendarNote, data, state);
-	Safefree (calnote);
-	data->calnote = NULL;
-}
-OUTPUT:
-        RETVAL
+void
+WriteCalendarNote (self, location, calhash)
+    HvObject		*self;
+    int			location;
+    HV			*calhash;
 
+  PPCODE:
+    gn_calnote		calnote;
+    char		*buf;
+    time_t		t, *t2;
+    gn_timestamp	*timestamp;
+    int			err;
+    SV			**value;
+
+    clear_data ();
+    Zero (&calnote, 1, calnote);
+    calnote.location = location;
+
+    if ((value = hv_fetch (calhash, "date", 4, 0)) == NULL) {
+	set_errors ("date is a required attribute for WriteCalendarNote ()");
+	XSRETURN_UNDEF;
+	}
+    t = (time_t)SvIV (*value);
+    t2 = &t;
+    timestamp = &(calnote.time);
+    HASH_TO_GSMDT (timestamp, t2);
+
+    if ((value = hv_fetch (calhash, "text", 4, 0)) == NULL) {
+	set_errors ("text is a required attribute for WriteCalendarNote ()");
+	XSRETURN_UNDEF;
+	}
+    strcpy (calnote.text, SvPV_nolen (*value));
+
+    if ((value = hv_fetch (calhash, "type", 4, 0)) == NULL)
+	buf = "MEMO";
+    else
+	buf = SvPV_nolen (*value);
+
+         if (!strncasecmp (buf, "misc", 4) || !strncasecmp (buf, "remi", 4))
+	calnote.type  = GN_CALNOTE_REMINDER;
+    else if (!strncasecmp (buf, "call", 4))
+	calnote.type  = GN_CALNOTE_CALL;
+    else if (!strncasecmp (buf, "meet", 4))
+	calnote.type  = GN_CALNOTE_MEETING;
+    else if (!strncasecmp (buf, "birt", 4))
+	calnote.type  = GN_CALNOTE_BIRTHDAY;
+    else if (!strncasecmp (buf, "memo", 4))
+	calnote.type  = GN_CALNOTE_MEMO;
+
+    value = hv_fetch (calhash, "number", 6, 0);
+    if (calnote.type == GN_CALNOTE_CALL && !value) {
+	set_errors ("number is a required attribute for WriteCalendarNote (CALL)");
+	XSRETURN_UNDEF;
+	}
+    if (value)
+	strcpy (calnote.phone_number, SvPV_nolen (*value));
+
+    if ((value = hv_fetch (calhash, "alarm", 5, 0))) {
+	t = (time_t)SvIV (*value);
+	t2 = &t;
+	calnote.alarm.enabled = true;
+	timestamp = &(calnote.alarm.timestamp);
+	HASH_TO_GSMDT (timestamp, t2);
+	}
+
+
+    if ((value = hv_fetch (calhash, "recurrence", 10, 0)) == NULL)
+	buf = "NEVER";
+    else
+	buf = SvPV_nolen (*value);
+
+	 if (!strncasecmp (buf, "neve", 4))
+	calnote.recurrence = GN_CALNOTE_NEVER;
+    else if (!strncasecmp (buf, "dail", 4))
+	calnote.recurrence = GN_CALNOTE_DAILY;
+    else if (!strncasecmp (buf, "week", 4))
+	calnote.recurrence = GN_CALNOTE_WEEKLY;
+    else if (!strncasecmp (buf, "2wee", 4))
+	calnote.recurrence = GN_CALNOTE_2WEEKLY;
+    else if (!strncasecmp (buf, "year", 4))
+	calnote.recurrence = GN_CALNOTE_YEARLY;
+
+    data->calnote = &calnote;
+    err = gn_sm_functions (GN_OP_WriteCalendarNote, data, state);
+    set_errori (err);
+    XS_RETURNi (calnote.location);
 
 void
 PrintError (self, errno)

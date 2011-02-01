@@ -501,6 +501,26 @@ Will delete B<all> TODO items.
 Set and enable alarm. Hour should be between 0 and 23, Minute between
 0 and 59.
 
+=head2 WriteCalendarNote ({ ... })
+
+Set a calendar note,  attributes marked with a * are required
+
+  location         => 1,              # * Location of the note
+  date             => time + 86400,   # * Date and time of note
+  text             => "Call John!",   # * Note text
+  type             => "call",         #   Note type, defaults to MEMO
+  number           => "+31612345678", #   Required for type CALL
+  alarm            => time + 86400,   #   Alarm time
+  recurrence       => "Weekly",       #   Recurrence, defaults to NEVER
+
+Valid note types are C<REMINDER>, C<CALL>, C<MEETING>, C<BIRTHDAY>,
+and C<MEMO>. Type match is done case-ignorant and types may be
+abbreviated to 4 characters.
+
+Valid recurrence specifications are C<NEVER>, C<DAILY>, C<WEEKLY>,
+C<2WEEKLY>, C<YEARLY>.  Type match is done case-ignorant and types
+may be abbreviated to 4 characters.
+
 =head2 GetDirTree (memorytype)
 
 Return a reference to a (recursive) list of folders and files in the
@@ -558,7 +578,6 @@ Note that these calls might take a long time with big trees.
 =head2 GetMMS
 =head2 SetDateTime
 =head2 SetSpeedDial
-=head2 WriteCalendarNote
 =head2 WritePhonebookEntry
 =head2 WriteTodo
 =head2 WriteWapBookmark
