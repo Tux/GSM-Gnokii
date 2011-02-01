@@ -357,15 +357,13 @@ Sends an SMS, attributes marked with a * are required
 
   destination      => "+31612345678", # * Recipient phone number
   message          => "Hello there",  # * Message text (max 160 characters)
-  smscindex        => 1,              # * Index  of the SMS Center to use
-                                      #   or use smscnumber
-  smscnumber       => "+31612345678", #   Number of the SMS Center
+  smscindex        => 1,              #   Index  of the SMS Center to use or
+  smscnumber       => "+31612345678", #   Number of the SMS Center to use
   report           => 1,              #   Delivery report (default off )
-  class            => 0,              #   Class (0..3)    (default undef)
   eightbit         => 1,              #   Use 8bit data   (default 7bit)
   validity         => 4320,           #   SMS validity in minutes
-  animation        => ".....",        #   Animation ... (NYT)
-  ringtone         => ".....",        #   Filename with ringtone ... (NYT)
+  animation        => ".....",        #   Animation ...              (NYI)
+  ringtone         => ".....",        #   Filename with ringtone ... (NYI)
 
 All other attribute are silently ignored.
 
