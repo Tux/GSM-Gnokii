@@ -516,10 +516,10 @@ GetPhonebook (self, mem_type, start, end)
     /* GetPhonebook */
 
 void
-GetSMS (self, mem_type, index)
+GetSMS (self, mem_type, location)
     HvObject		*self;
     char		*mem_type;
-    int			index;
+    int			location;
 
   PPCODE:
     gn_sms		*message;
@@ -527,7 +527,7 @@ GetSMS (self, mem_type, index)
     gn_sms_folder_list	*folderlist;
     int			i;
 
-    if (opt_v) warn ("GetSMS (%s, %d)\n", mem_type, index);
+    if (opt_v) warn ("GetSMS (%s, %d)\n", mem_type, location);
 
     clear_data ();
     Newxz (message, 1, gn_sms);
@@ -541,7 +541,7 @@ GetSMS (self, mem_type, index)
 	}
 
     message->memory_type = gn_str2memory_type (mem_type);
-    message->number      = index;
+    message->number      = location;
     Newxz (folder,     1, gn_sms_folder);
     /*folder->FolderID = 2;*/
     Newxz (folderlist, 1, gn_sms_folder_list);
@@ -552,7 +552,7 @@ GetSMS (self, mem_type, index)
 	HV *sms = newHV ();
 
 	hv_puts (sms, "memorytype", mem_type);
-	hv_puti (sms, "location",   index);
+	hv_puti (sms, "location",   location);
 	switch (message->type) {
 	    case 0: /* normal SMS */
 		hv_puts (sms, "text",      message->user_data[0].u.text);
@@ -618,10 +618,10 @@ GetSMS (self, mem_type, index)
     /* GetSMS */
 
 int
-DeleteSMS (self, memtype, index, foldername)
+DeleteSMS (self, memtype, location, foldername)
     HvObject		*self;
     char		*memtype;
-    int			index;
+    int			location;
     char		*foldername;
 
   PREINIT:
@@ -638,7 +638,7 @@ DeleteSMS (self, memtype, index, foldername)
     if (message.memory_type == GN_MT_XX)
 	warn (_("Unknown memory type %s (use ME, SM, ...)\n"), memtype);
     else {
-	message.number        = index;
+	message.number        = location;
 	data->sms             = &message;
 	data->sms_folder      = &folder;
 	data->sms_folder_list = &folderlist;
@@ -1879,16 +1879,16 @@ OUTPUT:
         RETVAL
 
 int
-DeleteWapBookmark (self, index)
+DeleteWapBookmark (self, location)
 HvObject *self;
-int index;
+int location;
 PREINIT:
 gn_wap_bookmark *wapbookmark;
 CODE:
 {
         clear_data ();
 	Newxz (wapbookmark, 1, gn_wap_bookmark);
-	wapbookmark->location = index;
+	wapbookmark->location = location;
 	data->wap_bookmark = wapbookmark;
 	RETVAL = gn_sm_functions (GN_OP_DeleteWAPBookmark, data, state);
 	Safefree (wapbookmark);
@@ -1898,9 +1898,9 @@ OUTPUT:
         RETVAL
 
 int
-WriteWapSetting (self, index, wapsethash)
+WriteWapSetting (self, location, wapsethash)
 HvObject *self;
-int index;
+int location;
 HV *wapsethash;
 PREINIT:
 char *buf;
@@ -1909,7 +1909,7 @@ CODE:
 {
         clear_data ();
 	Newxz (wapsetting, 1, gn_wap_setting);
-	wapsetting->location = index;
+	wapsetting->location = location;
 	strcpy (wapsetting->number, SvPV_nolen (*hv_fetch (wapsethash, "number", 6, 0)));
 	strcpy (wapsetting->home, SvPV_nolen (*hv_fetch (wapsethash, "home", 4, 0)));
 	strcpy (wapsetting->gsm_data_ip, SvPV_nolen (*hv_fetch (wapsethash,"gsm_data_ip", 11, 0)));
@@ -1979,16 +1979,16 @@ OUTPUT:
         RETVAL
 
 int
-ActivateWapSetting (self, index)
+ActivateWapSetting (self, location)
 HvObject *self;
-int index;
+int location;
 PREINIT:
 gn_wap_setting *wapsetting;
 CODE:
 {
         clear_data ();
 	Newxz (wapsetting, 1, gn_wap_setting);
-	wapsetting->location = index;
+	wapsetting->location = location;
 	data->wap_setting = wapsetting;
 	RETVAL = gn_sm_functions (GN_OP_ActivateWAPSetting, data, state);
 	Safefree (wapsetting);
@@ -1998,10 +1998,10 @@ OUTPUT:
         RETVAL
 
 int
-SetSpeedDial (self, number, index, mem_type)
+SetSpeedDial (self, number, location, mem_type)
 HvObject *self;
 int number;
-int index;
+int location;
 char *mem_type;
 PREINIT:
 gn_speed_dial *entry;
@@ -2014,7 +2014,7 @@ CODE:
 	else
 	  entry->memory_type = GN_MT_SM;
 	entry->number = number;
-	entry->location = index;
+	entry->location = location;
 	data->speed_dial = entry;
 	RETVAL = gn_sm_functions (GN_OP_SetSpeedDial, data, state);
 	Safefree (entry);
