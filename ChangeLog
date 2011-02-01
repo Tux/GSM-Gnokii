@@ -1,9 +1,14 @@
-0.03  30-01-2011
+0.03  02-02-2011
     - Make it into a more complete and robust distribution
     - More documentation
     - Support connect ({ verbose => 1 });
     - Finalized/Fixed a lot more Get methods from GSMD::Gnokii
     - Implemented GetDirTree ()
+    - working examples in examples
+      * kgnokii - send SMS. Can be use both from command line
+                  and with Tk GUI
+      * backup  - safe the basic phone settings in JSON
+      * dirtree - show the complete file tree on phone
 
 0.02  24-01-2011
     - Ongoing work-in-progress in converting all GSMD::Gnokii
