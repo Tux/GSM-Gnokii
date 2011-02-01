@@ -236,9 +236,9 @@ static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
 	if (*(fi->name)) {
 	    gn_file ff;
 
+	    clear_data ();
 	    Zero (&ff, 1, ff);
 	    strcpy (ff.name, full_name);
-	    clear_data ();
 	    data->file = &ff;
 	    if (gn_sm_func (self, GN_OP_GetFileId)) {
 		char buf[16];
@@ -804,7 +804,7 @@ GetSecurity (self)
 	    clear_data ();
 	    Zero (li, 4, li);
 	    data->locks_info = li;
-	    if (gn_sm_functions (GN_OP_GetLocksInfo,    data, state) == GN_ERR_NONE) {
+	    if (gn_sm_functions (GN_OP_GetLocksInfo, data, state) == GN_ERR_NONE) {
 		char *lock_names[] = {"MCC+MNC", "GID1", "GID2", "MSIN"};
 		int  i;
 		AV   *lil = newAV ();
@@ -1549,7 +1549,7 @@ GetDirTree (self, memorytype)
 
     dt = newHV ();
     hv_puts (dt, "memorytype",	memorytype);
-    hv_puts (dt, "path",	fl.path);
+    hv_puts (dt, "path",	mt);
     hv_puti (dt, "file_count",	fl.file_count);
     hv_puti (dt, "dir_size",	fl.size);
 
