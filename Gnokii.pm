@@ -147,6 +147,12 @@ of data, as my phone did not (yet) yield anything sensible to show.
 If a method returns C<undef>, look if C<$gsm->{ERROR}> contains a string
 which could explain the failure.
 
+When ranges are requested, if C<end> is C<0> or beyond the maximum
+allowed location index, it is set to the known maximum, like gnokii
+accepts "end" as range end. If a requested range includes empty slots
+(like selecting all speed dials where location 4 is not set), the
+empty slot returns C<undef>.
+
 =head2 new ({ attributes })
 
 Returns a new instance of C<GSM::Gnokii>. The attributes are optional. If
@@ -345,6 +351,8 @@ Returns a reference to a list of SMS Center information hashes like:
   smscnumber       => "+31612345678",
   recipienttype    => 0,
   recipientnumber  => "",
+
+The valid range for start is 1..5.
 
 =head2 GetSMSFolderList
 

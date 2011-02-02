@@ -1045,28 +1045,18 @@ GetSMSCenter (self, start, end)
 
   PPCODE:
     gn_sms_message_center	messagecenter;
-    int				i;
+    int				i, err;
     AV				*scl = newAV ();
 
     if (opt_v) warn ("GetSMSCenter (%d, %d)\n", start, end);
 
-    if (start < 0 || start > 255) {
-	set_errors ("messagecenter location should be in valid range 0..255");
+    if (start < 1 || start > 5) {
+	set_errors ("messagecenter location should be in valid range 1..5");
 	XSRETURN_UNDEF;
 	}
 
-    if (end <= 0 || end > 255) {
-	end = 255;
-	/* NYI - find last smscenter used
-	gn_memory_status ms = {mt, 0, 0};
-	data->memory_status = &ms;
-	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
-	    end = ms.used + 1;
-	    if (end < start)
-		end = start;
-	    }
-	*/
-	}
+    if (end <= 0 || end > 5)
+	end = 5;
 
     for (i = start; i <= end; i++) {
 	HV *mc = newHV ();
@@ -1075,7 +1065,17 @@ GetSMSCenter (self, start, end)
 	Zero (&messagecenter, 1, messagecenter);
 	messagecenter.id = i;
 	data->message_center = &messagecenter;
-	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
+	err = gn_sm_functions (GN_OP_GetSMSCenter, data, state);
+
+	if (err == GN_ERR_INVALIDLOCATION)
+	    break;
+
+	if (err == GN_ERR_EMPTYLOCATION) {
+	    av_push (scl, &PL_sv_undef);
+	    continue;
+	    }
+
+	if (err == GN_ERR_NONE) {
 	    hv_puti (mc, "id", messagecenter.id);
 	    hv_puts (mc, "name", messagecenter.name);
 	    hv_puti (mc, "defaultname", messagecenter.default_name);
@@ -1105,6 +1105,8 @@ GetSMSCenter (self, start, end)
 	    hv_puts (mc, "recipientnumber", messagecenter.recipient.number);
 	    av_addr (scl, mc);
 	    }
+	else
+	    set_errori (err);
 	}
     XS_RETURNr (scl);
     /* GetSMSCenter */
