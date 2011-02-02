@@ -913,35 +913,35 @@ GetCalendarNotes (self, start, end)
   PPCODE:
     gn_calnote_list	calendarnoteslist;
     gn_calnote		calendarnote;
-    int			i;
+    int			i, err;
     AV			*cnl = newAV ();
 
     if (opt_v) warn ("GetCalenderNotes (%d, %d)\n", start, end);
 
-    if (start < 0 || start > 255) {
-	set_errors ("calendarnote location should be in valid range 0..255");
+    if (start < 0) {
+	set_errors ("calendarnote location should be in positive");
 	XSRETURN_UNDEF;
 	}
 
-    if (end <= 0 || end > 255) {
-	end = 255;
-	/* NYI - find last note location used
-	gn_memory_status ms = {mt, 0, 0};
-	data->memory_status = &ms;
-	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
-	    end = ms.used + 1;
-	    if (end < start)
-		end = start;
-	    }
-	*/
-	}
+    if (end < 0 || (start && end == 0))
+	end = INT_MAX;
 
     for (i = start; i <= end; i++) {
 	clear_data ();
 	calendarnote.location = i;
 	data->calnote      = &calendarnote;
 	data->calnote_list = &calendarnoteslist;
-	if (gn_sm_functions (GN_OP_GetCalendarNote, data, state) == GN_ERR_NONE) {
+	err = gn_sm_functions (GN_OP_GetCalendarNote, data, state);
+
+	if (err == GN_ERR_INVALIDLOCATION)
+	    break;
+
+	if (err == GN_ERR_EMPTYLOCATION) {
+	    av_push (cnl, &PL_sv_undef);
+	    continue;
+	    }
+
+	if (err == GN_ERR_NONE) {
 	    HV *note = newHV ();
 	    hv_puti (note, "location", i);
 	    switch (calendarnote.type) {
@@ -974,6 +974,8 @@ GetCalendarNotes (self, start, end)
 	    GSMDATE_TO_TM ("date", calendarnote.time, note);
 	    av_addr (cnl, note);
 	    }
+	else
+	    set_errori (err);
 	}
     XS_RETURNr (cnl);
     /* GetCalendarNotes */
