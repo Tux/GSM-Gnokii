@@ -1503,18 +1503,8 @@ GetProfiles (self, start, end)
 	XSRETURN_UNDEF;
 	}
 
-    if (end <= 0 || end > max_profiles) {
+    if (end <= 0 || end > max_profiles)
 	end = max_profiles;
-	/* NYI - find last profile used
-	gn_memory_status ms = {mt, 0, 0};
-	data->memory_status = &ms;
-	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
-	    end = ms.used + 1;
-	    if (end < start)
-		end = start;
-	    }
-	*/
-	}
 
     warn ("GetProfile () @ %d\n", __LINE__);
     Zero (&rtl,     1, rtl);
