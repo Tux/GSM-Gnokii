@@ -452,10 +452,13 @@ Returns a reference to a hash with ringtone information, like:
 Returns a reference to a list of calendar note hashes, like:
 
   location         => 1,
+  date             => "2011-11-11 11:11:11",
   type             => "MEETING",
   text             => "Be there or be fired",
-  alarm            => "2011-11-11 11:11:11",
-  date             => "2010-10-10 10:10:10",
+  mlocation        => "Board room",
+  alarm            => "2010-10-10 10:10:10",
+  recurrence       => "WEEKLY",
+  number           => "+31612345678",
 
 =head2 GetTodo (start, end)
 
@@ -536,11 +539,11 @@ Set and enable alarm. Hour should be between 0 and 23, Minute between
 
 Set a calendar note,  attributes marked with a * are required
 
-  location         => 1,              # * Location of the note
   date             => time + 86400,   # * Date and time of note
   text             => "Call John!",   # * Note text
   type             => "call",         #   Note type, defaults to MEMO
   number           => "+31612345678", #   Required for type CALL
+  mlocation        => "Board room",   #   Adviced for type MEET
   alarm            => time + 86400,   #   Alarm time
   recurrence       => "Weekly",       #   Recurrence, defaults to NEVER
 

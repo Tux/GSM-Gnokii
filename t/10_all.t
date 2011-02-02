@@ -33,8 +33,8 @@ ok (my $get = {
     SMSStatus	=> $gsm->GetSMSStatus (),
     SMSFolders	=> $gsm->GetSMSFolderList (),
     SMS_1	=> $gsm->GetSMS ("IN", 1),
-    CalNotes	=> $gsm->GetCalendarNotes (0, 4),
-    ToDo	=> $gsm->GetTodo (1, 1),
+    CalNotes	=> $gsm->GetCalendarNotes (1, 3),
+    Todo	=> $gsm->GetTodo (1, 3),
 #   WAPSettings	=> $gsm->GetWapSettings (2),
     }, "Execute Get methods");
 

@@ -942,29 +942,36 @@ GetCalendarNotes (self, start, end)
 	    }
 
 	if (err == GN_ERR_NONE) {
-	    HV *note = newHV ();
+	    HV		*note = newHV ();
+	    char	*key;
+
 	    hv_puti (note, "location", i);
+
+	    key = "type";
 	    switch (calendarnote.type) {
-		case GN_CALNOTE_REMINDER:
-		    hv_puts (note, "type",   "MISCELLANEOUS");
-		    hv_puts (note, "number", calendarnote.phone_number);
-		    break;
-		case GN_CALNOTE_CALL:
-		    hv_puts (note, "type",   "CALL");
-		    break;
-		case GN_CALNOTE_MEETING:
-		    hv_puts (note, "type",   "MEETING");
-		    break;
-		case GN_CALNOTE_BIRTHDAY:
-		    hv_puts (note, "type",   "BIRTHDAY");
-		    break;
-		case GN_CALNOTE_MEMO:
-		    hv_puts (note, "type",   "MEMO");
-		    break;
-		default:
-		    hv_puts (note, "type",   "unknown");
-		    break;
+		case GN_CALNOTE_REMINDER: hv_puts (note, key, "REMINDER"); break;
+		case GN_CALNOTE_CALL:     hv_puts (note, key, "CALL");     break;
+		case GN_CALNOTE_MEETING:  hv_puts (note, key, "MEETING");  break;
+		case GN_CALNOTE_BIRTHDAY: hv_puts (note, key, "BIRTHDAY"); break;
+		case GN_CALNOTE_MEMO:     hv_puts (note, key, "MEMO");     break;
+		default:                  hv_puts (note, key, "unknown");  break;
 		}
+
+	    key = "recurrence";
+	    switch (calendarnote.recurrence) {
+		case GN_CALNOTE_NEVER:    hv_puts (note, key, "NEVER");    break;
+		case GN_CALNOTE_DAILY:    hv_puts (note, key, "DAILY");    break;
+		case GN_CALNOTE_WEEKLY:   hv_puts (note, key, "WEEKLY");   break;
+		case GN_CALNOTE_2WEEKLY:  hv_puts (note, key, "2WEEKLY");  break;
+		case GN_CALNOTE_YEARLY:   hv_puts (note, key, "YEARLY");   break;
+		default:                  hv_puts (note, key, "unknown");  break;
+		}
+
+	    if (calendarnote.phone_number[0])
+		hv_puts (note, "number",    calendarnote.phone_number);
+	    if (calendarnote.mlocation[0])
+		hv_puts (note, "mlocation", calendarnote.mlocation);
+
 	    hv_puts (note, "text", calendarnote.text);
 	    if (calendarnote.alarm.timestamp.year)
 		GSMDATE_TO_TM ("alarm", calendarnote.alarm.timestamp, note);
@@ -2106,9 +2113,8 @@ DeleteAllTodos (self)
     XSRETURNi (err);
 
 void
-WriteCalendarNote (self, location, calhash)
+WriteCalendarNote (self, calhash)
     HvObject		*self;
-    int			location;
     HV			*calhash;
 
   PPCODE:
@@ -2121,7 +2127,6 @@ WriteCalendarNote (self, location, calhash)
 
     clear_data ();
     Zero (&calnote, 1, calnote);
-    calnote.location = location;
 
     if ((value = hv_fetch (calhash, "date", 4, 0)) == NULL) {
 	set_errors ("date is a required attribute for WriteCalendarNote ()");
@@ -2162,6 +2167,9 @@ WriteCalendarNote (self, location, calhash)
     if (value)
 	strcpy (calnote.phone_number, SvPV_nolen (*value));
 
+    if ((value = hv_fetch (calhash, "mlocation", 9, 0)))
+	strcpy (calnote.mlocation,    SvPV_nolen (*value));
+
     if ((value = hv_fetch (calhash, "alarm", 5, 0))) {
 	t = (time_t)SvIV (*value);
 	t2 = &t;
@@ -2169,7 +2177,6 @@ WriteCalendarNote (self, location, calhash)
 	timestamp = &(calnote.alarm.timestamp);
 	HASH_TO_GSMDT (timestamp, t2);
 	}
-
 
     if ((value = hv_fetch (calhash, "recurrence", 10, 0)) == NULL)
 	buf = "NEVER";
