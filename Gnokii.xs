@@ -232,7 +232,7 @@ static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
     AV	*t = newAV ();
     int	i;
 
-    if (opt_v) warn ("Traverse path %s\n", path);
+    if (opt_v > 1) warn ("Traverse path %s\n", path);
 
     for (i = 0; i < fl->file_count; i++) {
 	HV	*f = newHV ();
@@ -297,7 +297,7 @@ _Initialize (self)
 
     opt_v = SvIV (*hv_fetch (self, "verbose", 7, 0));
 
-    if (opt_v) warn ("initialise ({ ... })\n");
+    if (opt_v) warn ("initialize ({ ... })\n");
 
     unless (gn_lib_init () == GN_ERR_NONE)
 	croak (_("Failed to initialize libgnokii.\n"));
@@ -361,7 +361,7 @@ GetPhonebook (self, mem_type, start, end)
 	memset (entry->name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
 	memset (entry->number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
 
-	if (opt_v) warn ("Reading %s Entry %d\n", mem_type, i);
+	if (opt_v > 1) warn ("Reading %s Entry %d\n", mem_type, i);
 
 	entry->location       = i;
 	entry->caller_group   = i;
@@ -716,7 +716,7 @@ GetSMSFolderList (self)
     fl = newAV ();
     for (i = 0; i < folderlist.number; i++) {
 	HV *f = newHV ();
-	if (opt_v) warn (" + GetSMSFolderStatus (%d)", i);
+	if (opt_v > 1) warn (" + GetSMSFolderStatus (%d)", i);
 	hv_puti (f, "location", i);
 	hv_puts (f, "memorytype", gn_memory_type2str (folderlist.folder_id[i]));
 	data->sms_folder = folderlist.folder + i;
