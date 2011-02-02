@@ -1423,28 +1423,18 @@ GetTodo (self, start, end)
   PPCODE:
     gn_todo_list	todolist;
     gn_todo		todo;
-    int			i;
+    int			i, err;
     AV			*tdl = newAV ();
 
     if (opt_v) warn ("GetTodo (%d, %d)\n", start, end);
 
-    if (start < 0 || start > 255) {
-	set_errors ("todo location should be in valid range 0..255");
+    if (start < 0) {
+	set_errors ("todo location should be positive");
 	XSRETURN_UNDEF;
 	}
 
-    if (end <= 0 || end > 255) {
-	end = 255;
-	/* NYI - find last todo location used
-	gn_memory_status ms = {mt, 0, 0};
-	data->memory_status = &ms;
-	if (gn_sm_func (self, GN_OP_GetMemoryStatus)) {
-	    end = ms.used + 1;
-	    if (end < start)
-		end = start;
-	    }
-	*/
-	}
+    if (end < 0 || (start && end == 0))
+	end = INT_MAX;
 
     for (i = start; i < end; i++) {
 	clear_data ();
@@ -1453,7 +1443,17 @@ GetTodo (self, start, end)
 	todo.location   = i;
 	data->todo      = &todo;
 	data->todo_list = &todolist;
-	if (gn_sm_func (self, GN_OP_GetToDo)) {
+	err = gn_sm_functions (GN_OP_GetToDo, data, state);
+
+	if (err == GN_ERR_INVALIDLOCATION)
+	    break;
+
+	if (err == GN_ERR_EMPTYLOCATION) {
+	    av_push (tdl, &PL_sv_undef);
+	    continue;
+	    }
+
+	if (err == GN_ERR_NONE) {
 	    HV *t = newHV ();
 	    hv_puti (t, "location", i);
 	    hv_puts (t, "text",     todo.text);
@@ -1465,6 +1465,8 @@ GetTodo (self, start, end)
 		}
 	    av_addr (tdl, t);
 	    }
+	else
+	    set_errori (err);
 	}
     XS_RETURNr (tdl);
 
