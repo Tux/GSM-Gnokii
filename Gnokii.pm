@@ -113,6 +113,31 @@ GSM::Gnokii - Perl extension libgnokii
 
 GSM::Gnokii is a driver module to interface Perl with libgnokii.
 
+=head1 MEMORYTYPES
+
+The supported memory types are the ones that gnokii supports on the
+different phone models, notably:
+
+  ME  Internal memory of the mobile equipment
+  SM  SIM card memory
+  FD  Fixed dial numbers
+  ON  Own numbers
+  EN  Emergency numbers
+  DC  Dialed numbers
+  RC  Received calls
+  MC  Missed calls
+  LD  Last dialed numbers
+
+For SMS, these are likely to be valid:
+
+  IN  SMS Inbox
+  OU  SMS Outbox, sent items
+  OUS SMS Outbox, items to be sent
+  AR  SMS Archive
+  DR  SMS Drafts
+  TE  SMS Templates
+  F1  SMS Folder 1 (..20)
+
 =head1 METHODS
 
 Most data used in below examples is made up and does not necessarily
@@ -186,21 +211,21 @@ Returns a reference to a hash with alarm info, like:
 
 Returns a reference to a list of memory status entries, like:
 
-  dcfree           =>   236,
+  dcfree           =>   236,	# Dialed numbers
   dcused           =>    20,
-  enfree           => 12544,
+  enfree           => 12544,	# Emergency numbers
   enused           =>     0,
-  fdfree           => 12544,
+  fdfree           => 12544,	# Fied-dial numbers
   fdused           =>     0,
-  mcfree           =>   493,
+  mcfree           =>   493,	# Missed calls
   mcused           =>    19,
-  onfree           =>    15,
+  onfree           =>    15,	# Own numbers
   onused           =>     0,
-  phonefree        =>  1902,
+  phonefree        =>  1902,	# Internal phone memory
   phoneused        =>    98,
-  rcfree           =>   748,
+  rcfree           =>   748,	# Received calls
   rcused           =>    20,
-  simfree          =>   250,
+  simfree          =>   250,	# SIM card
   simused          =>     0,
 
 =head2 GetPowerStatus
@@ -582,31 +607,6 @@ Note that these calls might take a long time with big trees.
 =head2 WriteWapSetting
 =head2 constant
 =head2 version
-
-=head1 MEMORYTYPES
-
-The supported memory types are the ones that gnokii supports on the
-different phone models, notably:
-
-  ME  Internal memory of the mobile equipment
-  SM  SIM card memory
-  FD  Fixed dial numbers
-  ON  Own numbers
-  EN  Emergency numbers
-  DC  Dialled numbers
-  RC  Received calls
-  MC  Missed calls
-  LD  Last dialed numbers
-
-For SMS, these are likely to be valid:
-
-  IN  SMS Inbox
-  OU  SMS Outbox, sent items
-  OUS SMS Outbox, items to be sent
-  AR  SMS Archive
-  DR  SMS Drafts
-  TE  SMS Templates
-  F1  SMS Folder 1 (..20)
 
 =head1 OTHER RESOURCES
 
