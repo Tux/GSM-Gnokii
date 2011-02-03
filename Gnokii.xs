@@ -3,6 +3,7 @@
 #include "EXTERN.h"
 #include "perl.h"
 #include "XSUB.h"
+#define NEED_newRV_noinc
 #define NEED_sv_2pv_flags
 #include "ppport.h"
 #include <stdlib.h>
@@ -30,15 +31,15 @@
 #define hv_putS(hash,key,s,l) _hvstore (hash, key, newSVpv ((char *)(s),   l))
 #define hv_puti(hash,key,num) _hvstore (hash, key, newSViv (num))
 #define hv_putn(hash,key,num) _hvstore (hash, key, newSVnv (num))
-#define hv_putr(hash,key,ref) _hvstore (hash, key, newRV_inc ((SV *)(ref)))
-#define av_addr(list,ref)     av_push  (list,      newRV_inc ((SV *)(ref)))
+#define hv_putr(hash,key,svr) _hvstore (hash, key, newRV_inc ((SV *)(svr)))
+#define av_addr(list,svr)     av_push  (list,      newRV_inc ((SV *)(svr)))
 
 #define XS_RETURNr(rv) {\
     ST (0) = sv_2mortal (newRV_noinc ((SV *)(rv)));\
     XSRETURN (1);\
     }
 #define XS_RETURNi(i) {\
-    ST (0) = sv_2mortal (newSViv (i));\
+    XST_mIV (0, i);\
     XSRETURN (1);\
     }
 
@@ -1612,7 +1613,7 @@ GetDirTree (self, memorytype)
 
     if (opt_v) warn ("GetDirTree (%s)\n", memorytype);
 
-         if (!strcmp (memorytype, "ME"))
+	 if (!strcmp (memorytype, "ME"))
 	mt = "A:";
     else if (!strcmp (memorytype, "SM"))
 	mt = "B:";
@@ -1696,7 +1697,7 @@ SendSMS (self, smshash)
 #endif
 
     if ((value = hv_fetch (smshash, "message", 7, 0)) ||
-        (value = hv_fetch (smshash, "text",    4, 0))) {
+	(value = hv_fetch (smshash, "text",    4, 0))) {
 	char		*text = SvPV (*value, l);
 	unsigned int	i = 0;
 #ifdef DEBUG_MODULE
@@ -1768,7 +1769,7 @@ SendSMS (self, smshash)
 #ifdef DEBUG_MODULE
 	warn ("SendSMS @ %d: set default smsc\n", __LINE__);
 #endif
-	data->message_center = calloc (1, sizeof (gn_sms_message_center));
+	Newxz (data->message_center, 1, gn_sms_message_center);
 	data->message_center->id = 1;
 	if (gn_sm_functions (GN_OP_GetSMSCenter, data, state) == GN_ERR_NONE) {
 	    snprintf (sms.smsc.number, sizeof (sms.smsc.number), "%s", data->message_center->smsc.number);
@@ -1795,8 +1796,7 @@ SendSMS (self, smshash)
 #ifdef DEBUG_MODULE
     warn ("SendSMS @ %d after send\n", __LINE__);
 #endif
-    ST (0) = sv_2mortal (newSViv (err));
-    XSRETURN (1);
+    XSRETURNi (err);
 
 int
 WritePhonebookEntry (self, entryhash)
@@ -1808,8 +1808,8 @@ gn_phonebook_entry *entry;
 char *mem_type;
 CODE:
 {
-        Newxz (entry, 1, gn_phonebook_entry);
-        entry->location = SvIV (*hv_fetch (entryhash, "location", 8, 0));
+	Newxz (entry, 1, gn_phonebook_entry);
+	entry->location = SvIV (*hv_fetch (entryhash, "location", 8, 0));
 	strcpy (entry->number, SvPV_nolen (*hv_fetch (entryhash, "number", 6, 0)));
 	entry->caller_group = SvIV (*hv_fetch (entryhash, "callergroup", 11, 0));
 	strcpy (entry->name, SvPV_nolen (*hv_fetch (entryhash, "name", 4, 0)));
@@ -1831,7 +1831,7 @@ CODE:
 	Safefree (entry);
 }
 OUTPUT:
-        RETVAL
+	RETVAL
 
 int
 SetDateTime (self, timestamp)
@@ -1841,14 +1841,14 @@ PREINIT:
 gn_timestamp *date;
 CODE:
 {
-        Newxz (date, 1, gn_timestamp);
+	Newxz (date, 1, gn_timestamp);
 	clear_data ();
 	HASH_TO_GSMDT (date, &timestamp);
 	data->datetime = date;
 	RETVAL = gn_sm_functions (GN_OP_SetDateTime, data, state);
 }
 OUTPUT:
-        RETVAL
+	RETVAL
 
 int
 WriteWapBookmark (self, waphash)
@@ -1858,7 +1858,7 @@ PREINIT:
 gn_wap_bookmark *wapbookmark;
 CODE:
 {
-        clear_data ();
+	clear_data ();
 	Newxz (wapbookmark, 1, gn_wap_bookmark);
 	strcpy (wapbookmark->name, SvPV_nolen (*hv_fetch (waphash, "name", 4, 0)));
 	strcpy (wapbookmark->URL, SvPV_nolen (*hv_fetch (waphash, "url", 3, 0)));
@@ -1873,7 +1873,7 @@ CODE:
 	data->wap_bookmark = NULL;
 }
 OUTPUT:
-        RETVAL
+	RETVAL
 
 int
 DeleteWapBookmark (self, location)
@@ -1883,7 +1883,7 @@ PREINIT:
 gn_wap_bookmark *wapbookmark;
 CODE:
 {
-        clear_data ();
+	clear_data ();
 	Newxz (wapbookmark, 1, gn_wap_bookmark);
 	wapbookmark->location = location;
 	data->wap_bookmark = wapbookmark;
@@ -1892,7 +1892,7 @@ CODE:
 	data->wap_bookmark = NULL;
 }
 OUTPUT:
-        RETVAL
+	RETVAL
 
 int
 WriteWapSetting (self, location, wapsethash)
@@ -1904,7 +1904,7 @@ char *buf;
 gn_wap_setting *wapsetting;
 CODE:
 {
-        clear_data ();
+	clear_data ();
 	Newxz (wapsetting, 1, gn_wap_setting);
 	wapsetting->location = location;
 	strcpy (wapsetting->number, SvPV_nolen (*hv_fetch (wapsethash, "number", 6, 0)));
@@ -1973,7 +1973,7 @@ CODE:
 	data->wap_setting = NULL;
 }
 OUTPUT:
-        RETVAL
+	RETVAL
 
 int
 ActivateWapSetting (self, location)
@@ -1983,7 +1983,7 @@ PREINIT:
 gn_wap_setting *wapsetting;
 CODE:
 {
-        clear_data ();
+	clear_data ();
 	Newxz (wapsetting, 1, gn_wap_setting);
 	wapsetting->location = location;
 	data->wap_setting = wapsetting;
@@ -1992,7 +1992,7 @@ CODE:
 	data->wap_setting = NULL;
 }
 OUTPUT:
-        RETVAL
+	RETVAL
 
 int
 SetSpeedDial (self, number, location, mem_type)
@@ -2004,7 +2004,7 @@ PREINIT:
 gn_speed_dial *entry;
 CODE:
 {
-        clear_data ();
+	clear_data ();
 	Newxz (entry, 1, gn_speed_dial);
 	if (!strcmp (mem_type, "ME"))
 	  entry->memory_type = GN_MT_ME;
@@ -2018,7 +2018,7 @@ CODE:
 	data->speed_dial = NULL;
 }
 OUTPUT:
-        RETVAL
+	RETVAL
 
 int
 CreateSMSFolder (self, name)
@@ -2028,7 +2028,7 @@ PREINIT:
 gn_sms_folder *folder;
 CODE:
 {
-        clear_data ();
+	clear_data ();
 	Newxz (folder, 1, gn_sms_folder);
 	strcpy (folder->name, name);
 	data->sms_folder = folder;
@@ -2037,7 +2037,7 @@ CODE:
 	data->sms_folder = NULL;
 }
 OUTPUT:
-        RETVAL
+	RETVAL
 
 void
 SetAlarm (self, hour, minute)
@@ -2142,7 +2142,7 @@ WriteCalendarNote (self, calhash)
     else
 	buf = SvPV_nolen (*value);
 
-         if (!strncasecmp (buf, "misc", 4) || !strncasecmp (buf, "remi", 4))
+	 if (!strncasecmp (buf, "misc", 4) || !strncasecmp (buf, "remi", 4))
 	calnote.type  = GN_CALNOTE_REMINDER;
     else if (!strncasecmp (buf, "call", 4))
 	calnote.type  = GN_CALNOTE_CALL;
