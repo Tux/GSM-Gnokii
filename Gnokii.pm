@@ -119,14 +119,11 @@ For SMS, these are likely to be valid:
   TE  SMS Templates
   F1  SMS Folder 1 (..20)
 
-=head1 METHODS
+=head1 PARAMETERS AND RETURN VALUES
 
 Most data used in below examples is made up and does not necessarily
 reflect existing values. Values like "..." are indicating "some sort
 of data, as my phone did not (yet) yield anything sensible to show.
-
-If a method returns C<undef>, look if C<$gsm->{ERROR}> contains a string
-which could explain the failure.
 
 When ranges are requested, if C<end> is C<0> or beyond the maximum
 allowed location index, it is set to the known maximum, like gnokii
@@ -134,11 +131,36 @@ accepts "end" as range end. If a requested range includes empty slots
 (like selecting all speed dials where location 4 is not set), the
 empty slot returns C<undef>.
 
+For methods that return a status C<$err>, the return code in C<$err> is
+
+=over 4
+
+=item undef
+
+When undefined, you passed conflicting or illegal options. I this case,
+it is very likely that C<$gsm->{ERROR}> contains an explanation.
+
+=item 0
+
+All is well: operation completed successfully.
+
+=item *
+
+Any other value is either the return code from the call was performed,
+in which case the value of C<$gsm->{ERROR}> should have been set to tell
+the cause of failure, or it is set to a sensible return code, like the
+new location of the item that was added. In that case, C<$gsm->{ERROR}>
+will contain something like C<"no error / no data">.
+
+=back
+
+=head1 METHODS
+
 =head2 new ({ attributes })
 
-Returns a new instance of C<GSM::Gnokii>. The attributes are optional. If
-attributes are passed, it should be in an anonymous hash. Unknown attributes
-are silently ignored.
+Returns a new instance of C<GSM::Gnokii>. The attributes are optional.
+If attributes are passed, it should be in an anonymous hash. Unknown
+attributes are silently ignored.
 
 =over 4
 
@@ -391,26 +413,6 @@ Sends an SMS, attributes marked with a * are required
 
 All other attribute are silently ignored.
 
-The return code in C<$err> is
-
-=over 4
-
-=item undef
-
-When undefined, you passed conflicting or illegal options. I this case, it
-is very likely that C<$gsm->{ERROR}> contains an explanation.
-
-=item 0
-
-All is well: message was successfully sent.
-
-=item *
-
-Any other value is the return code from the call that sends the message.
-The value of C<$gsm->{ERROR}> is set accordingly.
-
-=back
-
 =head2 GetNetworkInfo
 
 Returns a reference to a hash with the network information, like:
@@ -461,7 +463,8 @@ Returns a reference to a list of TODO note hashes, like:
 
 =head2 GetWapSettings (location)
 
-Returns a reference to a hash with the WAP settings for given location, like:
+Returns a reference to a hash with the WAP settings for given
+location, like:
 
   location         => 1,
   name             => "Default",
@@ -624,6 +627,17 @@ Note that these calls might take a long time with big trees.
     http://git.savannah.gnu.org/gitweb/?s=gnokii
 
   GSMI/GSMD::Gnokii: http://www.agouros.de/gnokii/
+
+=head1 WARNINGS AND WARRANTY
+
+This module just aims to be a perl API to libgnokii. All operations
+are done without warranty. Just at own risk. Bugs could exist in this
+code, as well as in libgnokii code or in the phone software itself.
+
+Some functionality has not been tested as the phones available for
+testing did not support the methods. Not all phones allow all actions,
+even basic ones like C<GetProfile> might not be supported on your
+mobile device.
 
 =head1 AUTHOR
 
