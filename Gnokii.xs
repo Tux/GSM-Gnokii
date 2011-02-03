@@ -2020,25 +2020,6 @@ CODE:
 OUTPUT:
 	RETVAL
 
-int
-CreateSMSFolder (self, name)
-HvObject *self;
-char *name;
-PREINIT:
-gn_sms_folder *folder;
-CODE:
-{
-	clear_data ();
-	Newxz (folder, 1, gn_sms_folder);
-	strcpy (folder->name, name);
-	data->sms_folder = folder;
-	RETVAL = gn_sm_functions (GN_OP_CreateSMSFolder, data, state);
-	Safefree (folder);
-	data->sms_folder = NULL;
-}
-OUTPUT:
-	RETVAL
-
 void
 SetAlarm (self, hour, minute)
     HvObject		*self;
@@ -2105,6 +2086,49 @@ DeleteAllTodos (self)
     err = gn_sm_functions (GN_OP_DeleteAllToDos, data, state);
     set_errori (err);
     XSRETURNi (err);
+
+void
+CreateSMSFolder (self, name)
+    HvObject		*self;
+    char		*name;
+
+  PPCODE:
+    gn_sms_folder	folder;
+    int			err;
+
+    if (strlen (name) >= GN_SMS_FOLDER_NAME_MAX_LENGTH) {
+	set_errors ("Folder name too long");
+	XSRETURN_UNDEF;
+	}
+
+    clear_data ();
+    Zero (&folder, 1, folder);
+    strcpy (folder.name, name);
+    data->sms_folder = &folder;
+    err = gn_sm_functions (GN_OP_CreateSMSFolder, data, state);
+    set_errori (err);
+    XS_RETURNi (err);
+
+void
+DeleteSMSFolder (self, location)
+    HvObject		*self;
+    int			location;
+
+  PPCODE:
+    gn_sms_folder	folder;
+    int			err;
+
+    if (location <= 0 || location > GN_SMS_FOLDER_MAX_NUMBER) {
+	set_errori (GN_ERR_INVALIDLOCATION);
+	XSRETURN_UNDEF;
+	}
+
+    clear_data ();
+    folder.folder_id = location;
+    data->sms_folder = &folder;
+    err = gn_sm_functions (GN_OP_DeleteSMSFolder, data, state);
+    set_errori (err);
+    XS_RETURNi (err);
 
 void
 WriteCalendarNote (self, calhash)

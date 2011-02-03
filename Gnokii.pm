@@ -344,6 +344,14 @@ Returns a reference to a list of hashes containing SMS Folder info, like:
   name             => "SMS Inbox",
   count            => 42,
 
+=head2 CreateSMSFolder (name)
+
+Creates an SMS folder.
+
+=head2 DeleteSMSFolder (name)
+
+Deletes an SMS folder.
+
 =head2 GetSMSStatus
 
 Returns a reference to the SMS status info, like:
@@ -364,6 +372,8 @@ Returns a reference to a hash with the SMS data, like:
   status           => "read",
   text             => "This is fake data, enjoy!",
   timestamp        => -1,
+
+=head2 DeleteSMS TODO
 
 =head2 $err = SendSMS ({ options })
 
@@ -585,8 +595,6 @@ like in the top node:
 Note that these calls might take a long time with big trees.
 
 =head2 ActivateWapSetting
-=head2 CreateSMSFolder
-=head2 DeleteSMS
 =head2 DeleteWapBookmark
 =head2 GetFileList
 =head2 GetFiles
