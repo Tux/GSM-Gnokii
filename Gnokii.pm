@@ -54,25 +54,6 @@ sub new
 	}, $class;
     } # new
 
-sub AUTOLOAD
-{
-    our $AUTOLOAD;
-    (my $constname = $AUTOLOAD) =~ s/.*:://;
-    croak "& not defined" if $constname eq "constant";
-    my $val = constant ($constname, @_ ? $_[0] : 0);
-    if ($!) {
-	if ($! =~ m/Invalid/ || $!{EINVAL}) {
-	    $AutoLoader::AUTOLOAD = $AUTOLOAD;
-	    goto &AutoLoader::AUTOLOAD;
-	    }
-	croak "Your vendor has not defined GSM::Gnokii macro $constname";
-	}
-    {	no strict "refs";
-	*$AUTOLOAD = sub () { $val };
-	}
-    goto &$AUTOLOAD;
-    }
-
 bootstrap GSM::Gnokii $VERSION;
 
 sub connect
@@ -616,7 +597,6 @@ Note that these calls might take a long time with big trees.
 =head2 WriteTodo
 =head2 WriteWapBookmark
 =head2 WriteWapSetting
-=head2 constant
 =head2 version
 
 =head1 OTHER RESOURCES

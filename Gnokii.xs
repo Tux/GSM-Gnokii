@@ -82,12 +82,6 @@ static int not_here (char *s)
     return (-1);
     } /* not_here */
 
-static double constant (char *name, int len, int arg)
-{
-    errno = EINVAL;
-    return 0;
-    } /* constant */
-
 typedef HV HvObject;
 typedef AV AvObject;
 
@@ -2221,19 +2215,3 @@ disconnect (self)
 	}
 
     XSRETURN (0);
-
-double
-constant (sv, arg)
-  PREINIT:
-    STRLEN	len;
-
-  INPUT:
-    SV		*sv
-    char	*s = SvPV (sv, len);
-    int		arg
-
-  CODE:
-    RETVAL = constant (s, len, arg);
-
-  OUTPUT:
-    RETVAL
