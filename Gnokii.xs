@@ -233,7 +233,6 @@ static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
 	HV	*f = newHV ();
 	char	date[32], full_name[512];
 	gn_file	*fi = fl->files[i];
-	int	is_file;
 
 	hv_puts (f, "type",      filetype2str (fi->filetype));
 	hv_puts (f, "name",      fi->name);
@@ -324,7 +323,7 @@ GetPhonebook (self, mem_type, start, end)
     int			end;
 
   PPCODE:
-    gn_phonebook_entry	*entry;
+    gn_phonebook_entry	entry;
     int			mt, i, j;
     AV			*pb;
 
@@ -356,154 +355,153 @@ GetPhonebook (self, mem_type, start, end)
 	}
 
     pb = newAV ();
-    Newxz (entry, 1, gn_phonebook_entry);
-    data->phonebook_entry = entry;
+    data->phonebook_entry = &entry;
     for (i = start; i <= end; i++) {
 	HV *abe = newHV ();
 
-	Zero (entry, 1, gn_phonebook_entry);
-	entry->memory_type = gn_str2memory_type (mem_type);
-	memset (entry->name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
-	memset (entry->number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
+	Zero (&entry, 1, entry);
+	entry.memory_type = gn_str2memory_type (mem_type);
+	memset (entry.name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
+	memset (entry.number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
 
 	if (opt_v > 1) warn ("Reading %s Entry %d\n", mem_type, i);
 
-	entry->location       = i;
-	entry->caller_group   = i;
-	data->phonebook_entry = entry;
+	entry.location        = i;
+	entry.caller_group    = i;
+	data->phonebook_entry = &entry;
 	op_error = gn_sm_functions (GN_OP_ReadPhonebook, data, state);
-	if (op_error == GN_ERR_NONE && ! entry->empty) {
+	if (op_error == GN_ERR_NONE && ! entry.empty) {
 #ifdef DEBUG_MODULE
 	    printf (
 	      "Name:    %s\n"
 	      "Number:  %s\n"
 	      "Group:   %d\n"
 	      "Location %d\n",
-		  entry->name, entry->number, entry->caller_group,
-		  entry->location);
+		  entry.name, entry.number, entry.caller_group,
+		  entry.location);
 #endif
 	    hv_puts (abe, "memorytype", mem_type);
-	    hv_puti (abe, "location",   entry->location);
-	    hv_puts (abe, "number",     entry->number);
-	    hv_puts (abe, "name",       entry->name);
-	    hv_puti (abe, "group",      entry->caller_group);
-	    if (entry->person.has_person) {
+	    hv_puti (abe, "location",   entry.location);
+	    hv_puts (abe, "number",     entry.number);
+	    hv_puts (abe, "name",       entry.name);
+	    hv_puti (abe, "group",      entry.caller_group);
+	    if (entry.person.has_person) {
 		HV *p = newHV ();
-		if (entry->person.honorific_prefixes[0])
-		    hv_puts (p, "formal_name",      entry->person.honorific_prefixes);
-		if (entry->person.honorific_suffixes[0])
-		    hv_puts (p, "formal_suffix",    entry->person.honorific_suffixes);
-		if (entry->person.given_name[0])
-		    hv_puts (p, "given_name",       entry->person.given_name);
-		if (entry->person.family_name[0])
-		    hv_puts (p, "family_name",      entry->person.family_name);
-		if (entry->person.additional_names[0])
-		    hv_puts (p, "additional_names", entry->person.additional_names);
+		if (entry.person.honorific_prefixes[0])
+		    hv_puts (p, "formal_name",      entry.person.honorific_prefixes);
+		if (entry.person.honorific_suffixes[0])
+		    hv_puts (p, "formal_suffix",    entry.person.honorific_suffixes);
+		if (entry.person.given_name[0])
+		    hv_puts (p, "given_name",       entry.person.given_name);
+		if (entry.person.family_name[0])
+		    hv_puts (p, "family_name",      entry.person.family_name);
+		if (entry.person.additional_names[0])
+		    hv_puts (p, "additional_names", entry.person.additional_names);
 		_hvstore (abe, "person", newRV_inc ((SV *)p));
 		}
-	    if (entry->address.has_address) {
+	    if (entry.address.has_address) {
 		HV *a = newHV ();
-		if (entry->address.post_office_box[0])
-		    hv_puts (a, "postal",           entry->address.post_office_box);
-		if (entry->address.extended_address[0])
-		    hv_puts (a, "extended_address", entry->address.extended_address);
-		if (entry->address.street[0])
-		    hv_puts (a, "street",           entry->address.street);
-		if (entry->address.city[0])
-		    hv_puts (a, "city",             entry->address.city);
-		if (entry->address.state_province[0])
-		    hv_puts (a, "state_province",   entry->address.state_province);
-		if (entry->address.zipcode[0])
-		    hv_puts (a, "zipcode",          entry->address.zipcode);
-		if (entry->address.country[0])
-		    hv_puts (a, "country",          entry->address.country);
+		if (entry.address.post_office_box[0])
+		    hv_puts (a, "postal",           entry.address.post_office_box);
+		if (entry.address.extended_address[0])
+		    hv_puts (a, "extended_address", entry.address.extended_address);
+		if (entry.address.street[0])
+		    hv_puts (a, "street",           entry.address.street);
+		if (entry.address.city[0])
+		    hv_puts (a, "city",             entry.address.city);
+		if (entry.address.state_province[0])
+		    hv_puts (a, "state_province",   entry.address.state_province);
+		if (entry.address.zipcode[0])
+		    hv_puts (a, "zipcode",          entry.address.zipcode);
+		if (entry.address.country[0])
+		    hv_puts (a, "country",          entry.address.country);
 		hv_putr (abe, "address", a);
 		}
-	    for (j = 0; j < entry->subentries_count; j++) {
+	    for (j = 0; j < entry.subentries_count; j++) {
 		char str[32];
 
-		switch (entry->subentries[j].entry_type) {
+		switch (entry.subentries[j].entry_type) {
 		    /* From _raw ... */
 		    case GN_PHONEBOOK_ENTRY_Birthday:
 			sprintf (str, "%4d-%02d-%02d",
-			    entry->subentries[j].data.date.year, entry->subentries[j].data.date.month,
-			    entry->subentries[j].data.date.day);
+			    entry.subentries[j].data.date.year, entry.subentries[j].data.date.month,
+			    entry.subentries[j].data.date.day);
 			hv_puts (abe, "birthday",     str);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Date:
 			sprintf (str, "%4d-%02d-%02d %02d:%02d:%02d",
-			    entry->subentries[j].data.date.year,   entry->subentries[j].data.date.month,
-			    entry->subentries[j].data.date.day,    entry->subentries[j].data.date.hour,
-			    entry->subentries[j].data.date.minute, entry->subentries[j].data.date.second);
+			    entry.subentries[j].data.date.year,   entry.subentries[j].data.date.month,
+			    entry.subentries[j].data.date.day,    entry.subentries[j].data.date.hour,
+			    entry.subentries[j].data.date.minute, entry.subentries[j].data.date.second);
 			hv_puts (abe, "date",         str);
 			break;
 #if LIBGNOKII_VERSION_MAJOR >= 6
 		    case GN_PHONEBOOK_ENTRY_ExtGroup:
-			hv_puti (abe, "ext_group",    entry->subentries[j].data.id);
+			hv_puti (abe, "ext_group",    entry.subentries[j].data.id);
 			break;
 #endif
 
 		    /* from vcard */
 		    case GN_PHONEBOOK_ENTRY_Email:
-			hv_puts (abe, "e_mail",       entry->subentries[j].data.number);
+			hv_puts (abe, "e_mail",       entry.subentries[j].data.number);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Postal:
-			hv_puts (abe, "home_address", entry->subentries[j].data.number);
+			hv_puts (abe, "home_address", entry.subentries[j].data.number);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Note:
-			hv_puts (abe, "note",         entry->subentries[j].data.number);
+			hv_puts (abe, "note",         entry.subentries[j].data.number);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Number:
-			switch (entry->subentries[j].number_type) {
+			switch (entry.subentries[j].number_type) {
 			    case GN_PHONEBOOK_NUMBER_Home:
-				hv_puts (abe, "tel_home",    entry->subentries[j].data.number);
+				hv_puts (abe, "tel_home",    entry.subentries[j].data.number);
 				break;
 
 			    case GN_PHONEBOOK_NUMBER_Mobile:
-				hv_puts (abe, "tel_cell",    entry->subentries[j].data.number);
+				hv_puts (abe, "tel_cell",    entry.subentries[j].data.number);
 				break;
 
 			    case GN_PHONEBOOK_NUMBER_Fax:
-				hv_puts (abe, "tel_fax",     entry->subentries[j].data.number);
+				hv_puts (abe, "tel_fax",     entry.subentries[j].data.number);
 				break;
 
 			    case GN_PHONEBOOK_NUMBER_Work:
-				hv_puts (abe, "tel_work",    entry->subentries[j].data.number);
+				hv_puts (abe, "tel_work",    entry.subentries[j].data.number);
 				break;
 
 			    case GN_PHONEBOOK_NUMBER_None:
-				if (strcmp (entry->subentries[j].data.number, entry->number))
-				    hv_puts (abe, "tel_none", entry->subentries[j].data.number);
+				if (strcmp (entry.subentries[j].data.number, entry.number))
+				    hv_puts (abe, "tel_none", entry.subentries[j].data.number);
 				break;
 
 			    case GN_PHONEBOOK_NUMBER_Common:
-				hv_puts (abe, "tel_common",  entry->subentries[j].data.number);
+				hv_puts (abe, "tel_common",  entry.subentries[j].data.number);
 				break;
 
 			    case GN_PHONEBOOK_NUMBER_General:
-				hv_puts (abe, "tel_general", entry->subentries[j].data.number);
+				hv_puts (abe, "tel_general", entry.subentries[j].data.number);
 				break;
 
 			    default:
 				sprintf (str, "tel_%03d_%03d",
-				    entry->subentries[j].number_type, entry->subentries[j].id);
-				hv_puts (abe, str, entry->subentries[j].data.number);
+				    entry.subentries[j].number_type, entry.subentries[j].id);
+				hv_puts (abe, str, entry.subentries[j].data.number);
 				break;
 			    }
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_URL:
-			hv_puts (abe, "url", entry->subentries[j].data.number);
+			hv_puts (abe, "url", entry.subentries[j].data.number);
 			break;
 
 		    default:
-			sprintf (str, "item_%04d_%03d_%03d", entry->subentries[j].entry_type,
-			    entry->subentries[j].number_type, entry->subentries[j].id);
-			hv_puts (abe, str, entry->subentries[j].data.number);
+			sprintf (str, "item_%04d_%03d_%03d", entry.subentries[j].entry_type,
+			    entry.subentries[j].number_type, entry.subentries[j].id);
+			hv_puts (abe, str, entry.subentries[j].data.number);
 			break;
 		    }
 		}
@@ -511,9 +509,9 @@ GetPhonebook (self, mem_type, start, end)
 	    }
 #ifdef DEBUG_MODULE
 	else
-	    warn ("DEF: %s;%s;%s;%d;%d;%d\n", entry->name, entry->number,
-		mem_type, entry->location, entry->caller_group,
-		entry->subentries_count);
+	    warn ("DEF: %s;%s;%s;%d;%d;%d\n", entry.name, entry.number,
+		mem_type, entry.location, entry.caller_group,
+		entry.subentries_count);
 #endif
 	}
 
@@ -1346,7 +1344,7 @@ SendSMS (self, smshash)
 
 	sms.udh.length = 0;
 	sms.user_data[0].type = GN_SMS_DATA_Text;
-	strncpy (sms.user_data[0].u.text, text, GN_SMS_MAX_LENGTH + 1);
+	strncpy ((char *)sms.user_data[0].u.text, text, GN_SMS_MAX_LENGTH + 1);
 	sms.user_data[0].u.text[GN_SMS_MAX_LENGTH] = '\0';
 
 	while (sms.user_data[i].type != GN_SMS_DATA_None) {
@@ -1431,7 +1429,7 @@ SendSMS (self, smshash)
 #ifdef DEBUG_MODULE
     warn ("SendSMS @ %d after send\n", __LINE__);
 #endif
-    XSRETURNi (err);
+    XS_RETURNi (err);
 
   /* ###########################################################################
    * Date/Time Functionality
@@ -1668,7 +1666,7 @@ GetProfiles (self, start, end)
     warn ("GetProfile () @ %d\n", __LINE__);
     clear_data ();
     data->model = model;
-    unless (gn_sm_funct (self, GN_OP_GetModel))
+    unless (gn_sm_func (self, GN_OP_GetModel))
 	XSRETURN_UNDEF;
 
     if (strcmp (model, "NSE-1") == 0)
@@ -1690,7 +1688,7 @@ GetProfiles (self, start, end)
     profile.number      = 0;
     data->profile       = &profile;
     data->ringtone_list = &rtl;
-    unless (gn_sm_funct (self, GN_OP_GetProfile)) /* use GN_OP_GetActiveProfile? */
+    unless (gn_sm_func (self, GN_OP_GetProfile)) /* use GN_OP_GetActiveProfile? */
 	XSRETURN_UNDEF;
 
     warn ("GetProfile () @ %d\n", __LINE__);
@@ -1816,7 +1814,7 @@ GetWapSettings (self, location)
     Zero (&wapsetting, 1, wapsetting);
     wapsetting.location = location;
     data->wap_setting   = &wapsetting;
-    unless (gn_sm_funct (self, GN_OP_GetWAPSetting))
+    unless (gn_sm_func (self, GN_OP_GetWAPSetting))
 	XSRETURN_UNDEF;
 
     ws = newHV ();
@@ -1970,7 +1968,6 @@ GetDirTree (self, memorytype)
     char		*mt;
     gn_file_list	fl;
     HV			*dt;
-    int			i;
 
     if (opt_v) warn ("GetDirTree (%s)\n", memorytype);
 
@@ -2223,7 +2220,7 @@ DeleteAllTodos (self)
     clear_data ();
     err = gn_sm_functions (GN_OP_DeleteAllToDos, data, state);
     set_errori (err);
-    XSRETURNi (err);
+    XS_RETURNi (err);
 
 void
 WriteCalendarNote (self, calhash)
