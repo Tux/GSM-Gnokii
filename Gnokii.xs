@@ -520,40 +520,78 @@ GetPhonebook (self, mem_type, start, end)
     XS_RETURNr (pb);
     /* GetPhonebook */
 
-int
-WritePhonebookEntry (self, entryhash)
-HvObject *self;
-HV *entryhash;
-PREINIT:
-gn_error error;
-gn_phonebook_entry *entry;
-char *mem_type;
-CODE:
-{
-	Newxz (entry, 1, gn_phonebook_entry);
-	entry->location = SvIV (*hv_fetch (entryhash, "location", 8, 0));
-	strcpy (entry->number, SvPV_nolen (*hv_fetch (entryhash, "number", 6, 0)));
-	entry->caller_group = SvIV (*hv_fetch (entryhash, "callergroup", 11, 0));
-	strcpy (entry->name, SvPV_nolen (*hv_fetch (entryhash, "name", 4, 0)));
-	mem_type = SvPV_nolen (*hv_fetch (entryhash, "memorytype", 10, 0));
-	/* borrowed from gnokii.c */
-	if (!strncmp (mem_type, "ME", 2))
-	  entry->memory_type = GN_MT_ME;
-	else
-	{
-	  if (!strncmp (mem_type, "SM", 2))
-	    entry->memory_type = GN_MT_SM;
+void
+WritePhonebookEntry (self, pbh)
+    HvObject		*self;
+    HV			*pbh;
+
+  PPCODE:
+    gn_error		err;
+    gn_phonebook_entry	entry;
+    int			mt;
+    char		*str;
+    STRLEN		l;
+    SV			**value;
+
+    if (opt_v) warn ("WritePhonebookEntry ({ ... })\n");
+
+    unless (value = hv_fetch (pbh, "memory_type", 11, 0)) {
+	set_errors ("memory_type is a required attribute in WritePhonebookEntry ()");
+	XSRETURN_UNDEF;
 	}
-	/* here we will add a part for subentries if this really is needed */
-	data->phonebook_entry = entry;
-	RETVAL = gn_sm_functions (GN_OP_WritePhonebook, data, state);
-#ifdef DEBUG_MODULE
-	warn ("Vor Free");
-#endif
-	Safefree (entry);
-}
-OUTPUT:
-	RETVAL
+
+    clear_data ();
+    Zero (&entry, 1, entry);
+
+    mt = gn_str2memory_type (str = SvPV_nolen (*value));
+    if (mt == GN_MT_XX) {
+	char s_err[80];
+	sprintf (s_err, "ERROR: Unknown memory type '%s' (use ME, SM, ...)", str);
+	set_errors (s_err);
+	XSRETURN_UNDEF;
+	}
+    entry.memory_type = mt;
+
+    unless (value = hv_fetch (pbh, "number", 6, 0)) {
+	set_errors ("number is a required attribute in WritePhonebookEntry ()");
+	XSRETURN_UNDEF;
+	}
+    str = SvPV (*value, l);
+    if (l >= sizeof (entry.number)) {
+	set_errors ("Number is too long");
+	XSRETURN_UNDEF;
+	}
+    strcpy (entry.number, str);
+
+    l = 0;
+    if ((value = hv_fetch (pbh, "location", 8, 0))) {
+	unless (SvIOK (*value)) {
+	    set_errors ("location should be numeric");
+	    XSRETURN_UNDEF;
+	    }
+
+	l = SvIV (*value);
+	if (l < 0 || l > 255) {
+	    set_errors ("phonebook location should be in valid range 0..255");
+	    XSRETURN_UNDEF;
+	    }
+	}
+    if (l == 0) {
+	gn_memory_status ms = { mt, 0, 0 };
+	data->memory_status = &ms;
+	if (gn_sm_func (self, GN_OP_GetMemoryStatus))
+	    l = ms.used + 1;
+	}
+    entry.location = l;
+
+    /* Here comes all the optional stuff */
+    entry.caller_group = 5; /* SvIV (*hv_fetch (pbh, "callergroup", 11, 0)); */
+    strcpy (entry.name, "XXX"); /* SvPV_nolen (*hv_fetch (pbh, "name", 4, 0))); */
+
+    data->phonebook_entry = &entry;
+    err = gn_sm_functions (GN_OP_WritePhonebook, data, state);
+    set_errori (err);
+    XS_RETURNi (entry.location);
 
 void
 GetDateTime (self)
