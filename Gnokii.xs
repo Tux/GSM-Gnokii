@@ -327,9 +327,9 @@ _Initialize (self)
    */
 
 void
-GetPhonebook (self, mem_type, start, end)
+GetPhonebook (self, memtype, start, end)
     HvObject		*self;
-    char		*mem_type;
+    char		*memtype;
     int			start;
     int			end;
 
@@ -338,7 +338,7 @@ GetPhonebook (self, mem_type, start, end)
     int			mt, i, j;
     AV			*pb;
 
-    if (opt_v) warn ("GetPhonebook (%s, %d, %d)\n", mem_type, start, end);
+    if (opt_v) warn ("GetPhonebook (%s, %d, %d)\n", memtype, start, end);
 
     clear_data ();
 
@@ -347,7 +347,7 @@ GetPhonebook (self, mem_type, start, end)
 	XSRETURN_UNDEF;
 	}
 
-    set_memtype (mt, mem_type);
+    set_memtype (mt, memtype);
 
     if (end <= 0 || end > 255) {
 	gn_memory_status ms = {mt, 0, 0};
@@ -369,7 +369,7 @@ GetPhonebook (self, mem_type, start, end)
 	memset (entry.name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
 	memset (entry.number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
 
-	if (opt_v > 1) warn ("Reading %s Entry %d\n", mem_type, i);
+	if (opt_v > 1) warn ("Reading %s Entry %d\n", memtype, i);
 
 	entry.location        = i;
 	entry.caller_group    = i;
@@ -385,7 +385,7 @@ GetPhonebook (self, mem_type, start, end)
 		  entry.name, entry.number, entry.caller_group,
 		  entry.location);
 #endif
-	    hv_puts (abe, "memorytype", mem_type);
+	    hv_puts (abe, "memorytype", memtype);
 	    hv_puti (abe, "location",   entry.location);
 	    hv_puts (abe, "number",     entry.number);
 	    hv_puts (abe, "name",       entry.name);
@@ -515,7 +515,7 @@ GetPhonebook (self, mem_type, start, end)
 #ifdef DEBUG_MODULE
 	else
 	    warn ("DEF: %s;%s;%s;%d;%d;%d\n", entry.name, entry.number,
-		mem_type, entry.location, entry.caller_group,
+		memtype, entry.location, entry.caller_group,
 		entry.subentries_count);
 #endif
 	}
@@ -1141,51 +1141,45 @@ GetSMSStatus (self)
     /* GetSMSStatus */
 
 void
-GetSMS (self, mem_type, location)
+GetSMS (self, memtype, location)
     HvObject		*self;
-    char		*mem_type;
+    char		*memtype;
     int			location;
 
   PPCODE:
-    gn_sms		*message;
-    gn_sms_folder	*folder;
-    gn_sms_folder_list	*folderlist;
+    gn_sms		message;
+    gn_sms_folder	folder;
+    gn_sms_folder_list	folderlist;
     int			i;
 
-    if (opt_v) warn ("GetSMS (%s, %d)\n", mem_type, location);
+    if (opt_v) warn ("GetSMS (%s, %d)\n", memtype, location);
 
     clear_data ();
-    Newxz (message, 1, gn_sms);
+    Zero (&message, 1, message);
 
-    message->memory_type = gn_str2memory_type (mem_type);
-    if (message->memory_type == GN_MT_XX) {
-	char s_err[80];
-	sprintf (s_err, "ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)", mem_type);
-	set_errors (s_err);
-	XSRETURN_UNDEF;
-	}
+    set_memtype (message.memory_type, memtype);
 
-    message->memory_type = gn_str2memory_type (mem_type);
-    message->number      = location;
-    Newxz (folder,     1, gn_sms_folder);
+    message.memory_type = gn_str2memory_type (memtype);
+    message.number      = location;
+    Zero (&folder,     1, folder);
     /*folder->FolderID = 2;*/
-    Newxz (folderlist, 1, gn_sms_folder_list);
-    data->sms             = message;
-    data->sms_folder      = folder;
-    data->sms_folder_list = folderlist;
+    Zero (&folderlist, 1, folderlist);
+    data->sms             = &message;
+    data->sms_folder      = &folder;
+    data->sms_folder_list = &folderlist;
     if (gn_sms_get (data, state) == GN_ERR_NONE) {
 	HV *sms = newHV ();
 
-	hv_puts (sms, "memorytype", mem_type);
+	hv_puts (sms, "memorytype", memtype);
 	hv_puti (sms, "location",   location);
-	switch (message->type) {
+	switch (message.type) {
 	    case 0: /* normal SMS */
-		hv_puts (sms, "text",      message->user_data[0].u.text);
-		hv_puts (sms, "sender",    message->remote.number);
-		hv_puts (sms, "smsc",      message->smsc.number);
-		GSMDATE_TO_TM ("smscdate", message->smsc_time, sms);
-		GSMDATE_TO_TM ("date",     message->time,      sms);
-		switch (message->status) {
+		hv_puts (sms, "text",      message.user_data[0].u.text);
+		hv_puts (sms, "sender",    message.remote.number);
+		hv_puts (sms, "smsc",      message.smsc.number);
+		GSMDATE_TO_TM ("smscdate", message.smsc_time, sms);
+		GSMDATE_TO_TM ("date",     message.time,      sms);
+		switch (message.status) {
 		    case GN_SMS_Unknown: hv_puts (sms, "status", "unknown"); break;
 		    case GN_SMS_Read:    hv_puts (sms, "status", "read");    break;
 		    case GN_SMS_Unread:  hv_puts (sms, "status", "unread");  break;
@@ -1196,22 +1190,22 @@ GetSMS (self, mem_type, location)
 		break;
 
 	    default:
-		warn ("SMS message type '%s' not yet dealt with\n", gn_sms_message_type2str (message->type));
+		warn ("SMS message type '%s' not yet dealt with\n", gn_sms_message_type2str (message.type));
 	    }
-	unless (message->udh.number)
-	    message->udh.udh[0].type = GN_SMS_UDH_None;
+	unless (message.udh.number)
+	    message.udh.udh[0].type = GN_SMS_UDH_None;
 
-	switch (message->udh.udh[0].type) {
+	switch (message.udh.udh[0].type) {
 	    case GN_SMS_UDH_None:
 		break;
 
 	    case GN_SMS_UDH_ConcatenatedMessages:
-		hv_puti (sms, "concat_current", message->udh.udh[0].u.concatenated_short_message.current_number);
-		hv_puti (sms, "concat_max",     message->udh.udh[0].u.concatenated_short_message.maximum_number);
+		hv_puti (sms, "concat_current", message.udh.udh[0].u.concatenated_short_message.current_number);
+		hv_puti (sms, "concat_max",     message.udh.udh[0].u.concatenated_short_message.maximum_number);
 		break;
 
 	    default:
-		warn ("Warning: GetSMS: Unhandled message type of '%d': continuing\n", message->udh.udh[0].type);
+		warn ("Warning: GetSMS: Unhandled message type of '%d': continuing\n", message.udh.udh[0].type);
 		break;
 	    }
 #ifdef DEBUG_MODULE
@@ -1221,8 +1215,8 @@ GetSMS (self, mem_type, location)
 	      "SMSCTime.Year %d\n"
 	      "FolderCount:  %d\n"
 	      "Foldername:   %s\n",
-		message->type, message->user_data[0].type,
-		message->user_data[0].u.text, message->smsc_time.year,
+		message.type, message.user_data[0].type,
+		message.user_data[0].u.text, message.smsc_time.year,
 		data->sms_folder_list->number, data->sms_folder->name);
 #endif
 	for (i = 0; i < (int)data->sms_folder_list->number; i++) {
@@ -2155,18 +2149,18 @@ OUTPUT:
 	RETVAL
 
 int
-SetSpeedDial (self, number, location, mem_type)
+SetSpeedDial (self, number, location, memtype)
 HvObject *self;
 int number;
 int location;
-char *mem_type;
+char *memtype;
 PREINIT:
 gn_speed_dial *entry;
 CODE:
 {
 	clear_data ();
 	Newxz (entry, 1, gn_speed_dial);
-	if (!strcmp (mem_type, "ME"))
+	if (!strcmp (memtype, "ME"))
 	  entry->memory_type = GN_MT_ME;
 	else
 	  entry->memory_type = GN_MT_SM;
