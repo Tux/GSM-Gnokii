@@ -8,6 +8,7 @@
 #include "ppport.h"
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 
 #undef DEBUG_MODULE
@@ -526,7 +527,7 @@ WritePhonebookEntry (self, pbh)
   PPCODE:
     gn_error		err;
     gn_phonebook_entry	entry;
-    int			mt;
+    int			mt, i;
     char		*str;
     STRLEN		l;
     SV			**value;
@@ -561,26 +562,26 @@ WritePhonebookEntry (self, pbh)
 	}
     strcpy (entry.number, str);
 
-    l = 0;
+    i = 0;
     if ((value = hv_fetch (pbh, "location", 8, 0))) {
 	unless (SvIOK (*value)) {
 	    set_errors ("location should be numeric");
 	    XSRETURN_UNDEF;
 	    }
 
-	l = SvIV (*value);
-	if (l < 0 || l > 255) {
+	i = SvIV (*value);
+	if (i < 0 || i > 255) {
 	    set_errors ("phonebook location should be in valid range 0..255");
 	    XSRETURN_UNDEF;
 	    }
 	}
-    if (l == 0) {
+    if (i == 0) {
 	gn_memory_status ms = { mt, 0, 0 };
 	data->memory_status = &ms;
 	if (gn_sm_func (self, GN_OP_GetMemoryStatus))
-	    l = ms.used + 1;
+	    i = ms.used + 1;
 	}
-    entry.location = l;
+    entry.location = i;
 
     /* Here comes all the optional stuff */
     entry.caller_group = 5; /* SvIV (*hv_fetch (pbh, "callergroup", 11, 0)); */
@@ -1125,13 +1126,14 @@ GetSMSStatus (self)
     HvObject		*self;
 
   PPCODE:
-    gn_sms_status	SMSStatus = {0, 0, 0, 0};
+    gn_sms_status	SMSStatus;
 
     if (opt_v) warn ("GetSMSStatus ()\n");
 
     clear_data ();
+    Zero (&SMSStatus, 1, gn_sms_status);
     data->sms_status = &SMSStatus;
-    if (gn_sm_functions (GN_OP_GetSMSStatus, data, state) == GN_ERR_NONE) {
+    if (gn_sm_func (self, GN_OP_GetSMSStatus)) {
 	HV *ss = newHV ();
 	hv_puti (ss, "unread", SMSStatus.unread);
 	hv_puti (ss, "read",   SMSStatus.number);
@@ -1191,6 +1193,7 @@ GetSMS (self, mem_type, location)
 		    case GN_SMS_Unread:  hv_puts (sms, "status", "unread");  break;
 		    case GN_SMS_Sent:    hv_puts (sms, "status", "sent");    break;
 		    case GN_SMS_Unsent:  hv_puts (sms, "status", "unsent");  break;
+		    default:             hv_puts (sms, "status", "unknown"); break;
 		    }
 		break;
 
@@ -1303,7 +1306,7 @@ SendSMS (self, smshash)
     clear_data ();
     gn_sms_default_submit (&sms);
 
-    if ((value = hv_fetch (smshash, "report", 6, 0)) && SvTRUE (*value))
+    if ((value = hv_fetch (smshash, "report", 6, 0)) && (SvTRUE (*value)))
 	sms.delivery_report = true;
     else
 	sms.delivery_report = false;
@@ -1446,18 +1449,18 @@ GetAlarm (self)
     HvObject		*self;
 
   PPCODE:
-    gn_calnote_alarm	alarm;
+    gn_calnote_alarm	alrm;
 
     if (opt_v) warn ("GetAlarm ()\n");
 
     clear_data ();
-    data->alarm = &alarm;
+    data->alarm = &alrm;
     if (gn_sm_functions (GN_OP_GetAlarm, data, state) == GN_ERR_NONE) {
-	char time[8];
+	char tm[8];
 	HV *ah = newHV ();
-	sprintf (time, "%02d:%02d", alarm.timestamp.hour, alarm.timestamp.minute);
-	hv_puts (ah, "alarm", time);
-	hv_puts (ah, "state", (alarm.enabled ? "on" : "off"));
+	sprintf (tm, "%02d:%02d", alrm.timestamp.hour, alrm.timestamp.minute);
+	hv_puts (ah, "alarm", tm);
+	hv_puts (ah, "state", (alrm.enabled ? "on" : "off"));
 	XS_RETURNr (ah);
 	}
     XSRETURN_UNDEF;
@@ -2230,7 +2233,7 @@ WriteCalendarNote (self, calhash)
   PPCODE:
     gn_calnote		calnote;
     char		*buf;
-    time_t		t, *t2;
+    time_t		t1, *t2;
     gn_timestamp	*timestamp;
     int			err;
     SV			**value;
@@ -2242,8 +2245,8 @@ WriteCalendarNote (self, calhash)
 	set_errors ("date is a required attribute for WriteCalendarNote ()");
 	XSRETURN_UNDEF;
 	}
-    t = (time_t)SvIV (*value);
-    t2 = &t;
+    t1 = (time_t)SvIV (*value);
+    t2 = &t1;
     timestamp = &(calnote.time);
     HASH_TO_GSMDT (timestamp, t2);
 
@@ -2281,8 +2284,8 @@ WriteCalendarNote (self, calhash)
 	strcpy (calnote.mlocation,    SvPV_nolen (*value));
 
     if ((value = hv_fetch (calhash, "alarm", 5, 0))) {
-	t = (time_t)SvIV (*value);
-	t2 = &t;
+	t1 = (time_t)SvIV (*value);
+	t2 = &t1;
 	calnote.alarm.enabled = true;
 	timestamp = &(calnote.alarm.timestamp);
 	HASH_TO_GSMDT (timestamp, t2);
