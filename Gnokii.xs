@@ -12,6 +12,11 @@
 #include <time.h>
 
 #undef DEBUG_MODULE
+#ifdef DEBUG_MODULE
+static int			opt_v = 1;
+#else
+static int			opt_v = 0;
+#endif
 
 #ifndef false
 #  define false 0
@@ -29,8 +34,39 @@
 
 #define hv_del(hash,key)      hv_delete (hash, key, strlen (key), 0)
 
-#define _hvfetch(hash,key,sv) (sv = hv_fetch (hash, key, strlen (key), 0))
-#define hv_gets(hash,key,l)   (_hvfetch (hash, key, value) && SvPOK (*value) ? SvPV (*value, l) : NULL)
+static char *_hv_gets (HV *hash, const char *key, STRLEN *l)
+{
+    char  *str;
+    SV **value;
+    STRLEN len;
+
+    if (opt_v > 5) warn ("hv_gets (%s)\n", key);
+    unless (value = hv_fetch (hash, key, strlen (key), 0))
+	return (NULL);
+    unless (SvPOK (*value))
+	return (NULL);
+    str = SvPV (*value, len);
+    *l = len;
+    if (opt_v > 5) warn ("hv_gets (%s) = '%s'\n", key, str);
+    return (str);
+    } /* _hv_gets */
+#define hv_gets(hash,key,s,l) (s = _hv_gets (hash, key, &l))
+
+static int _hv_geti (HV *hash, const char *key, int *i)
+{
+    SV **value;
+
+    if (opt_v > 5) warn ("hv_geti (%s)\n", key);
+    *i = 0;
+    unless (value = hv_fetch (hash, key, strlen (key), 0))
+	return (0);
+    unless (SvIOK (*value))
+	return (0);
+    *i = SvIV (*value);
+    if (opt_v > 5) warn ("hv_geti (%s) = %d\n", key, *i);
+    return (1);
+    } /* _hv_geti */
+#define hv_geti(hash,key,i)   _hv_geti (hash, key, &i)
 
 #define _hvstore(hash,key,sv) (void)hv_store (hash, key, strlen (key), sv, 0)
 #define hv_puts(hash,key,str) _hvstore (hash, key, newSVpv ((char *)(str), 0))
@@ -90,11 +126,6 @@ static struct gn_statemachine	*state;
 static gn_data			*data;
 static char			*configfile  = NULL;
 static char			*configmodel = NULL;
-#ifdef DEBUG_MODULE
-static int			opt_v = 1;
-#else
-static int			opt_v = 0;
-#endif
 static gn_error			op_error = 0;
 
 gn_memory_status SIMMemoryStatus   = {GN_MT_SM, 0, 0};
@@ -541,11 +572,10 @@ WritePhonebookEntry (self, pbh)
     int			mt, i;
     char		*str;
     STRLEN		l;
-    SV			**value;
 
     if (opt_v) warn ("WritePhonebookEntry ({ ... })\n");
 
-    unless (str = hv_gets (pbh, "memory_type", l)) {
+    unless (hv_gets (pbh, "memory_type", str, l)) {
 	set_errors ("memory_type is a required attribute in WritePhonebookEntry ()");
 	XSRETURN_UNDEF;
 	}
@@ -555,30 +585,28 @@ WritePhonebookEntry (self, pbh)
 
     set_memtype (mt, str);
     entry.memory_type = mt;
+    memset (entry.name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
+    memset (entry.number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
 
-    unless (value = hv_fetch (pbh, "number", 6, 0)) {
+    unless (hv_gets (pbh, "number", str, l)) {
 	set_errors ("number is a required attribute in WritePhonebookEntry ()");
 	XSRETURN_UNDEF;
 	}
-    str = SvPV (*value, l);
-    if (l >= sizeof (entry.number)) {
+    if (l > GN_PHONEBOOK_NUMBER_MAX_LENGTH) {
 	set_errors ("Number is too long");
 	XSRETURN_UNDEF;
 	}
     strcpy (entry.number, str);
 
-    i = 0;
-    if ((value = hv_fetch (pbh, "location", 8, 0))) {
-	unless (SvIOK (*value)) {
-	    set_errors ("location should be numeric");
-	    XSRETURN_UNDEF;
-	    }
-
-	i = SvIV (*value);
+    if (hv_geti (pbh, "location", i)) {
 	if (i < 0 || i > 255) {
 	    set_errors ("phonebook location should be in valid range 0..255");
 	    XSRETURN_UNDEF;
 	    }
+	}
+    else {
+	set_errors ("location is required and should be numeric");
+	XSRETURN_UNDEF;
 	}
     if (i == 0) {
 	gn_memory_status ms = { mt, 0, 0 };
@@ -588,12 +616,66 @@ WritePhonebookEntry (self, pbh)
 	}
     entry.location = i;
 
-    /* Here comes all the optional stuff */
-    entry.caller_group = 5; /* SvIV (*hv_fetch (pbh, "callergroup", 11, 0)); */
-    strcpy (entry.name, "XXX"); /* SvPV_nolen (*hv_fetch (pbh, "name", 4, 0))); */
+    if (hv_gets (pbh, "name", str, l)) {
+	if (l > GN_PHONEBOOK_NAME_MAX_LENGTH) {
+	    set_errors ("Name is too long");
+	    XSRETURN_UNDEF;
+	    }
+	strcpy (entry.name, str);
+	}
+
+    if (hv_geti (pbh, "group", i)) {
+	if (i < 0 || i > 5) {
+	    set_errors ("Invalid value for group");
+	    XSRETURN_UNDEF;
+	    }
+	entry.caller_group = i;
+	}
+
+    warn (
+	"  location         => %d,\n"
+	"  number           => '%s',\n"
+	"  name             => '%s',\n"
+	"  group            => %d,\n"
+	"  person           => {\n"
+	"    formal_name      => '%s',\n"
+	"    formal_suffix    => '%s',\n"
+	"    given_name       => '%s',\n"
+	"    family_name      => '%s',\n"
+	"    additional_names => '%s',\n"
+	"    },\n"
+	"  address          => {\n"
+	"    postal           => '%s',\n"
+	"    extended_address => '%s',\n"
+	"    street           => '%s',\n"
+	"    city             => '%s',\n"
+	"    state_province   => '%s',\n"
+	"    zipcode          => '%s',\n"
+	"    country          => '%s',\n"
+	"    },\n"
+	"  birthday         => '%s',\n"
+	"  date             => '%s',\n"
+	"  ext_group        => %d,\n"
+	"  e_mail           => '%s',\n"
+	"  home_address     => '%s',\n"
+	"  note             => '%s',\n"
+	"  tel_home         => '%s',\n"
+	"  tel_cell         => '%s',\n"
+	"  tel_fax          => '%s',\n"
+	"  tel_work         => '%s',\n"
+	"  tel_none         => '%s',\n"
+	"  tel_common       => '%s',\n"
+	"  tel_general      => '%s',\n"
+	"  url              => '%s',\n",
+	    entry.location, entry.number, entry.name, entry.caller_group,
+	    "", "", "", "", "",
+	    "", "", "", "", "", "", "",
+	    "", "", 0, "", "", "",
+	    "", "", "", "", "", "", "",
+	    "");
 
     data->phonebook_entry = &entry;
-    err = gn_sm_functions (GN_OP_WritePhonebook, data, state);
+    err = 0;/* gn_sm_functions (GN_OP_WritePhonebook, data, state); */
     set_errori (err);
     XS_RETURNi (entry.location);
 
@@ -626,12 +708,12 @@ SetDateTime (self, timestamp)
     gn_error		err;
     gn_timestamp	date;
 
-    if (opt_v) warn ("SetDateTime (%d)\n", timestamp);
+    if (opt_v) warn ("SetDateTime (%ld)\n", (long)timestamp);
 
     clear_data ();
     Zero (&date, 1, date);
-    HASH_TO_GSMDT (date, &timestamp);
     data->datetime = &date;
+    HASH_TO_GSMDT (data->datetime, &timestamp);
     err = gn_sm_functions (GN_OP_SetDateTime, data, state);
     set_errori (err);
     XS_RETURNi (err);

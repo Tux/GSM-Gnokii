@@ -299,6 +299,20 @@ An addressbook entry looks somewhat like:
   tel_general      => "+31201234571",
   url              => "http://www.some.where.com",
 
+=head2 WritePhonebookEntry ({ ... })
+
+Write a phonebook entry. The structure of the hash is as described above
+in C<GetPhonebook>.
+
+The attributes C<memorytype> and C<number> are required, all other fields
+are optional.
+
+If no C<location> is given, or location is C<0>, it will use the first free
+location after the last used location.
+
+C<caller_group> can be any of "Family", "VIPs", "Friends", "Work", "Others",
+"None" or "Unknown" (all case sensitive).
+
 =head2 GetSpeedDial (number)
 
 Returns a reference to a hash with the information needed to get to
@@ -612,7 +626,6 @@ Note that these calls might take a long time with big trees.
 =head2 GetFiles
 =head2 GetMMS
 =head2 SetSpeedDial
-=head2 WritePhonebookEntry
 =head2 WriteTodo
 =head2 WriteWapBookmark
 =head2 WriteWapSetting
