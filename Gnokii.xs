@@ -611,6 +611,26 @@ GetDateTime (self)
     /* GetDateTime */
 
 void
+SetDateTime (self, timestamp)
+    HvObject		*self;
+    time_t		timestamp;
+
+  PPCODE:
+    gn_error		err;
+    gn_timestamp	date;
+
+    if (opt_v) warn ("SetDateTime (%d)\n", timestamp);
+
+    clear_data ();
+    Zero (&date, 1, date);
+    HASH_TO_GSMDT (date, &timestamp);
+    data->datetime = &date;
+    err = gn_sm_functions (GN_OP_SetDateTime, data, state);
+    set_errori (err);
+    XS_RETURNi (err);
+    /* SetDateTime */
+
+void
 GetDisplayStatus (self)
     HvObject	*self;
 
@@ -1244,6 +1264,7 @@ DeleteSMS (self, memtype, location)
     int			location;
 
   PPCODE:
+    gn_error		err;
     gn_sms		message;
     gn_sms_folder	folder;
     gn_sms_folder_list	folderlist;
@@ -1260,7 +1281,9 @@ DeleteSMS (self, memtype, location)
     data->sms             = &message;
     data->sms_folder      = &folder;
     data->sms_folder_list = &folderlist;
-    XS_RETURNi (gn_sms_delete (data, state));
+    err = gn_sms_delete (data, state);
+    set_errori (err);
+    XS_RETURNi (err);
 
 void
 SendSMS (self, smshash)
@@ -1986,23 +2009,6 @@ GetDirTree (self, memorytype)
 
     XS_RETURNr (dt);
     /* GetDirTree */
-
-int
-SetDateTime (self, timestamp)
-HvObject *self;
-time_t timestamp;
-PREINIT:
-gn_timestamp *date;
-CODE:
-{
-	Newxz (date, 1, gn_timestamp);
-	clear_data ();
-	HASH_TO_GSMDT (date, &timestamp);
-	data->datetime = date;
-	RETVAL = gn_sm_functions (GN_OP_SetDateTime, data, state);
-}
-OUTPUT:
-	RETVAL
 
 int
 WriteWapBookmark (self, waphash)

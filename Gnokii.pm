@@ -209,6 +209,11 @@ Returns a reference to a hash with two elements, like:
   date             => "2011-01-23 17:22:37",
   timestamp        => 1295799757,
 
+=head2 SetDateTime (timestamp)
+
+Set date and time on device. The C<timestamp> is a unix timestamp as
+returned by the C<time> function.
+
 =head2 GetAlarm
 
 Returns a reference to a hash with alarm info, like:
@@ -395,7 +400,9 @@ Returns a reference to a hash with the SMS data, like:
   text             => "This is fake data, enjoy!",
   timestamp        => -1,
 
-=head2 DeleteSMS TODO
+=head2 DeleteSMS (memorytype, location)
+
+Deletes the SMS as specified by the arguments.
 
 =head2 $err = SendSMS ({ options })
 
@@ -602,7 +609,6 @@ Note that these calls might take a long time with big trees.
 =head2 GetFileList
 =head2 GetFiles
 =head2 GetMMS
-=head2 SetDateTime
 =head2 SetSpeedDial
 =head2 WritePhonebookEntry
 =head2 WriteTodo
