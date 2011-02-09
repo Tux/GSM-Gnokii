@@ -41,6 +41,18 @@ WriteMakefile (
     TYPEMAPS     => [ "perlobject.map" ],
     DEFINE       => "",
     INC          => $gnokii_inc,
+
+    macro        => { GCC_WALL => (join " " => qw(
+			-Wall -Wextra -Wbad-function-cast -Wcomment -Wcomments
+			-Wformat -Wdisabled-optimization -Wmissing-prototypes
+			-Werror-implicit-function-declaration -Wmissing-noreturn
+			-Wmissing-format-attribute -Wno-cast-qual -Wunused-value
+			-Wno-sign-compare -Wpointer-arith -Wreturn-type -Wshadow
+			-Wswitch-default -Wuninitialized -Wunreachable-code
+			-Wundef
+			)),
+		     "#OPTIMIZE" => "-O2 \$(GCC_WALL)",
+		    },
     );
 
 1;
