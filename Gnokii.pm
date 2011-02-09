@@ -310,8 +310,13 @@ are optional.
 If no C<location> is given, or location is C<0>, it will use the first free
 location after the last used location.
 
-C<caller_group> can be any of "Family", "VIPs", "Friends", "Work", "Others",
-"None" or "Unknown" (all case sensitive).
+C<caller_group> ss numeric and should be any of:
+    0: Family
+    1: VIPs
+    2: Friends
+    3: Work
+    4: Others
+    5: None
 
 =head2 GetSpeedDial (number)
 

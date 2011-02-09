@@ -570,6 +570,7 @@ WritePhonebookEntry (self, pbh)
     gn_error		err;
     gn_phonebook_entry	entry;
     int			mt, i;
+    SV			**value;
     char		*str;
     STRLEN		l;
 
@@ -624,15 +625,26 @@ WritePhonebookEntry (self, pbh)
 	strcpy (entry.name, str);
 	}
 
-    if (hv_geti (pbh, "group", i)) {
+    if (hv_geti (pbh, "caller_group", i)) {
 	if (i < 0 || i > 5) {
-	    set_errors ("Invalid value for group");
+	    set_errors ("Invalid value for caller_group");
 	    XSRETURN_UNDEF;
 	    }
 	entry.caller_group = i;
 	}
 
-    warn (
+    if ((value = hv_fetch (pbh, "person", 6, 0)) && SvROK (*value)) {
+	HV	*p = (HV *)SvRV (*value);
+
+	entry.person.has_person = 1;
+	if (hv_gets (p, "formal_name",      str, l)) strcpy (entry.person.honorific_prefixes, str);
+	if (hv_gets (p, "formal_suffix",    str, l)) strcpy (entry.person.honorific_suffixes, str);
+	if (hv_gets (p, "given_name",       str, l)) strcpy (entry.person.given_name,         str);
+	if (hv_gets (p, "family_name",      str, l)) strcpy (entry.person.family_name,        str);
+	if (hv_gets (p, "additional_names", str, l)) strcpy (entry.person.additional_names,   str);
+	}
+
+    if (opt_v > 5 ) warn (
 	"  location         => %d,\n"
 	"  number           => '%s',\n"
 	"  name             => '%s',\n"
@@ -668,14 +680,16 @@ WritePhonebookEntry (self, pbh)
 	"  tel_general      => '%s',\n"
 	"  url              => '%s',\n",
 	    entry.location, entry.number, entry.name, entry.caller_group,
-	    "", "", "", "", "",
+	    entry.person.honorific_prefixes, entry.person.honorific_suffixes,
+	    entry.person.given_name, entry.person.family_name,
+	    entry.person.additional_names,
 	    "", "", "", "", "", "", "",
 	    "", "", 0, "", "", "",
 	    "", "", "", "", "", "", "",
 	    "");
 
     data->phonebook_entry = &entry;
-    err = 0;/* gn_sm_functions (GN_OP_WritePhonebook, data, state); */
+    err = gn_sm_functions (GN_OP_WritePhonebook, data, state);
     set_errori (err);
     XS_RETURNi (entry.location);
 
