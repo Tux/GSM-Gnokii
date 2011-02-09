@@ -1250,10 +1250,11 @@ DeleteSMS (self, memtype, location)
     int			location;
 
   PPCODE:
-    gn_error		err;
     gn_sms		message;
     gn_sms_folder	folder;
     gn_sms_folder_list	folderlist;
+
+    if (opt_v) warn ("DeleteSMS (%s, %d)\n", memtype, location);
 
     clear_data ();
     Zero (&message,    1, message);
@@ -1265,8 +1266,7 @@ DeleteSMS (self, memtype, location)
     data->sms             = &message;
     data->sms_folder      = &folder;
     data->sms_folder_list = &folderlist;
-    err = gn_sms_delete (data, state);
-    XS_RETURNi (err);
+    XS_RETURNi (gn_sms_delete (data, state));
 
 void
 SendSMS (self, smshash)
