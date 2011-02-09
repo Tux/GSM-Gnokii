@@ -385,11 +385,11 @@ GetPhonebook (self, memtype, start, end)
 		  entry.name, entry.number, entry.caller_group,
 		  entry.location);
 #endif
-	    hv_puts (abe, "memorytype", memtype);
-	    hv_puti (abe, "location",   entry.location);
-	    hv_puts (abe, "number",     entry.number);
-	    hv_puts (abe, "name",       entry.name);
-	    hv_puti (abe, "group",      entry.caller_group);
+	    hv_puts (abe, "memorytype",   memtype);
+	    hv_puti (abe, "location",     entry.location);
+	    hv_puts (abe, "number",       entry.number);
+	    hv_puts (abe, "name",         entry.name);
+	    hv_puts (abe, "caller_group", gn_phonebook_group_type2str (entry.caller_group));
 	    if (entry.person.has_person) {
 		HV *p = newHV ();
 		if (entry.person.honorific_prefixes[0])
@@ -431,7 +431,7 @@ GetPhonebook (self, memtype, start, end)
 			sprintf (str, "%4d-%02d-%02d",
 			    entry.subentries[j].data.date.year, entry.subentries[j].data.date.month,
 			    entry.subentries[j].data.date.day);
-			hv_puts (abe, "birthday",     str);
+			hv_puts (abe, "birthday",       str);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Date:
@@ -439,25 +439,28 @@ GetPhonebook (self, memtype, start, end)
 			    entry.subentries[j].data.date.year,   entry.subentries[j].data.date.month,
 			    entry.subentries[j].data.date.day,    entry.subentries[j].data.date.hour,
 			    entry.subentries[j].data.date.minute, entry.subentries[j].data.date.second);
-			hv_puts (abe, "date",         str);
+			hv_puts (abe, "date",           str);
 			break;
 #if LIBGNOKII_VERSION_MAJOR >= 6
 		    case GN_PHONEBOOK_ENTRY_ExtGroup:
-			hv_puti (abe, "ext_group",    entry.subentries[j].data.id);
+			hv_puti (abe, "ext_group",      entry.subentries[j].data.id);
 			break;
 #endif
 
-		    /* from vcard */
+		    case GN_PHONEBOOK_ENTRY_Nickname:
+			hv_puts (abe, "nickname",       entry.subentries[j].data.number);
+			break;
+
 		    case GN_PHONEBOOK_ENTRY_Email:
-			hv_puts (abe, "e_mail",       entry.subentries[j].data.number);
+			hv_puts (abe, "e_mail",         entry.subentries[j].data.number);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Postal:
-			hv_puts (abe, "home_address", entry.subentries[j].data.number);
+			hv_puts (abe, "postal_address", entry.subentries[j].data.number);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Note:
-			hv_puts (abe, "note",         entry.subentries[j].data.number);
+			hv_puts (abe, "note",           entry.subentries[j].data.number);
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_Number:
@@ -500,7 +503,11 @@ GetPhonebook (self, memtype, start, end)
 			break;
 
 		    case GN_PHONEBOOK_ENTRY_URL:
-			hv_puts (abe, "url", entry.subentries[j].data.number);
+			hv_puts (abe, "url",     entry.subentries[j].data.number);
+			break;
+
+		    case GN_PHONEBOOK_ENTRY_Company:
+			hv_puts (abe, "company", entry.subentries[j].data.number);
 			break;
 
 		    default:
@@ -871,30 +878,12 @@ GetCalendarNotes (self, start, end)
 	    }
 
 	if (err == GN_ERR_NONE) {
-	    HV		*note = newHV ();
-	    char	*key;
+	    HV	*note = newHV ();
 
 	    hv_puti (note, "location", i);
 
-	    key = "type";
-	    switch (calendarnote.type) {
-		case GN_CALNOTE_REMINDER: hv_puts (note, key, "REMINDER"); break;
-		case GN_CALNOTE_CALL:     hv_puts (note, key, "CALL");     break;
-		case GN_CALNOTE_MEETING:  hv_puts (note, key, "MEETING");  break;
-		case GN_CALNOTE_BIRTHDAY: hv_puts (note, key, "BIRTHDAY"); break;
-		case GN_CALNOTE_MEMO:     hv_puts (note, key, "MEMO");     break;
-		default:                  hv_puts (note, key, "unknown");  break;
-		}
-
-	    key = "recurrence";
-	    switch (calendarnote.recurrence) {
-		case GN_CALNOTE_NEVER:    hv_puts (note, key, "NEVER");    break;
-		case GN_CALNOTE_DAILY:    hv_puts (note, key, "DAILY");    break;
-		case GN_CALNOTE_WEEKLY:   hv_puts (note, key, "WEEKLY");   break;
-		case GN_CALNOTE_2WEEKLY:  hv_puts (note, key, "2WEEKLY");  break;
-		case GN_CALNOTE_YEARLY:   hv_puts (note, key, "YEARLY");   break;
-		default:                  hv_puts (note, key, "unknown");  break;
-		}
+	    hv_puts (note, "type",       gn_calnote_type2str       (calendarnote.type));
+	    hv_puts (note, "recurrence", gn_calnote_recurrence2str (calendarnote.recurrence));
 
 	    if (calendarnote.phone_number[0])
 		hv_puts (note, "number",    calendarnote.phone_number);
@@ -1669,7 +1658,6 @@ GetProfiles (self, start, end)
     gn_ringtone_list	rtl;
     char		model[64] = "";
     int			i, max_profiles = 7;
-    char		*key;
     HV			*p;
     AV			*pl = newAV ();
 
@@ -1719,66 +1707,17 @@ GetProfiles (self, start, end)
 
 	warn ("GetProfile () @ %d\n", __LINE__);
 	p = newHV ();
-	hv_puti (p, "number",      i);
-	hv_puts (p, "name",        profile.name);
-	hv_puts (p, "defaultname", profile.default_name);
+	hv_puti (p, "number",           i);
+	hv_puts (p, "name",             profile.name);
+	hv_puts (p, "defaultname",      profile.default_name);
 
-	key = "call_alert";
-	switch (profile.call_alert) {
-	    case GN_PROFILE_CALLALERT_Ringing:      hv_puts (p, key, "Ringing");       break;
-	    case GN_PROFILE_CALLALERT_Ascending:    hv_puts (p, key, "Ascending");     break;
-	    case GN_PROFILE_CALLALERT_RingOnce:     hv_puts (p, key, "Ring once");     break;
-	    case GN_PROFILE_CALLALERT_BeepOnce:     hv_puts (p, key, "Beep once");     break;
-	    case GN_PROFILE_CALLALERT_CallerGroups: hv_puts (p, key, "Caller groups"); break;
-	    case GN_PROFILE_CALLALERT_Off:          hv_puts (p, key, "Off");           break;
-	    default:                                hv_puts (p, key, "unknown");       break;
-	    }
-
-	hv_puti (p, "ringtonenumber", profile.ringtone);
-
-	key = "volume_level";
-	switch (profile.volume) {
-	    case GN_PROFILE_VOLUME_Level1:          hv_puts (p, key, "Level 1");       break;
-	    case GN_PROFILE_VOLUME_Level2:          hv_puts (p, key, "Level 2");       break;
-	    case GN_PROFILE_VOLUME_Level3:          hv_puts (p, key, "Level 3");       break;
-	    case GN_PROFILE_VOLUME_Level4:          hv_puts (p, key, "Level 4");       break;
-	    case GN_PROFILE_VOLUME_Level5:          hv_puts (p, key, "Level 5");       break;
-	    default:                                hv_puts (p, key, "unknown");       break;
-	    }
-
-	key = "message_tone";
-	switch (profile.message_tone) {
-	    case GN_PROFILE_MESSAGE_NoTone:         hv_puts (p, key, "No tone");       break;
-	    case GN_PROFILE_MESSAGE_Standard:       hv_puts (p, key, "Standard");      break;
-	    case GN_PROFILE_MESSAGE_Special:        hv_puts (p, key, "Special");       break;
-	    case GN_PROFILE_MESSAGE_BeepOnce:       hv_puts (p, key, "Beep once");     break;
-	    case GN_PROFILE_MESSAGE_Ascending:      hv_puts (p, key, "Ascending");     break;
-	    default:                                hv_puts (p, key, "unknown");       break;
-	    }
-
-	key = "keypad_tone";
-	switch (profile.keypad_tone) {
-	    case GN_PROFILE_KEYVOL_Off:             hv_puts (p, key, "Off");           break;
-	    case GN_PROFILE_KEYVOL_Level1:          hv_puts (p, key, "Level 1");       break;
-	    case GN_PROFILE_KEYVOL_Level2:          hv_puts (p, key, "Level 2");       break;
-	    case GN_PROFILE_KEYVOL_Level3:          hv_puts (p, key, "Level 3");       break;
-	    default:                                hv_puts (p, key, "unknown");       break;
-	    }
-
-	key = "warning_tone";
-	switch (profile.warning_tone) {
-	    case GN_PROFILE_WARNING_Off:            hv_puts (p, key, "Off");           break;
-	    case GN_PROFILE_WARNING_On:             hv_puts (p, key, "On");            break;
-	    default:                                hv_puts (p, key, "unknown");       break;
-	    }
-
-	key = "vibration";
-	switch (profile.vibration) {
-	    case GN_PROFILE_VIBRATION_Off:          hv_puts (p, key, "Off");           break;
-	    case GN_PROFILE_VIBRATION_On:           hv_puts (p, key, "On");            break;
-	    default:                                hv_puts (p, key, "unknown");       break;
-	    }
-
+	hv_puts (p, "call_alert",       gn_profile_callalert_type2str (profile.call_alert));
+	hv_puti (p, "ringtonenumber",   profile.ringtone);
+	hv_puts (p, "volume_level",     gn_profile_volume_type2str    (profile.volume));
+	hv_puts (p, "message_tone",     gn_profile_message_type2str   (profile.message_tone));
+	hv_puts (p, "keypad_tone",      gn_profile_keyvol_type2str    (profile.keypad_tone));
+	hv_puts (p, "warning_tone",     gn_profile_warning_type2str   (profile.warning_tone));
+	hv_puts (p, "vibration",        gn_profile_vibration_type2str (profile.vibration));
 	hv_puti (p, "caller_groups",    profile.caller_groups);
 	hv_puts (p, "automatic_answer", profile.automatic_answer ? "On" : "Off");
 	av_addr (pl, p);
@@ -1817,7 +1756,6 @@ GetWapSettings (self, location)
 
   PPCODE:
     gn_wap_setting	wapsetting;
-    char		*key;
     HV			*ws;
 
     if (opt_v) warn ("GetWapSettings (%d)\n", location);
@@ -1830,88 +1768,31 @@ GetWapSettings (self, location)
 	XSRETURN_UNDEF;
 
     ws = newHV ();
-    hv_puti (ws, "location", location);
-    hv_puts (ws, "name",     wapsetting.name);
-    hv_puts (ws, "home",     wapsetting.home);
+    hv_puti (ws, "location",        location);
+    hv_puts (ws, "name",            wapsetting.name);
+    hv_puts (ws, "home",            wapsetting.home);
 
-    key = "session";
-    switch (wapsetting.session) {
-	case GN_WAP_SESSION_TEMPORARY: hv_puts (ws, key, "temporary");   break;
-	case GN_WAP_SESSION_PERMANENT: hv_puts (ws, key, "permanent");   break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-    hv_puts (ws, "security", wapsetting.security ? "yes" : "no");
+    hv_puts (ws, "session",         gn_wap_session2str        (wapsetting.session));
+    hv_puts (ws, "security",        wapsetting.security ? "yes" : "no");
+    hv_puts (ws, "bearer",          gn_wap_bearer2str         (wapsetting.bearer));
+    hv_puts (ws, "call_type",       gn_wap_call_type2str      (wapsetting.call_type));
+    hv_puts (ws, "call_speed",      gn_wap_call_speed2str     (wapsetting.call_speed));
 
-    key = "bearer";
-    switch (wapsetting.bearer) {
-	case GN_WAP_BEARER_GSMDATA:    hv_puts (ws, key, "GSM data");    break;
-	case GN_WAP_BEARER_GPRS:       hv_puts (ws, key, "GPRS");        break;
-	case GN_WAP_BEARER_SMS:        hv_puts (ws, key, "SMS");         break;
-	case GN_WAP_BEARER_USSD:       hv_puts (ws, key, "USSD");        break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-
-    key = "gsm_data_auth";
-    switch (wapsetting.gsm_data_authentication) {
-	case GN_WAP_AUTH_NORMAL:       hv_puts (ws, key, "normal");      break;
-	case GN_WAP_AUTH_SECURE:       hv_puts (ws, key, "secure");      break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-
-    key = "call_type";
-    switch (wapsetting.call_type) {
-	case GN_WAP_CALL_ANALOGUE:     hv_puts (ws, key, "analog");      break;
-	case GN_WAP_CALL_ISDN:         hv_puts (ws, key, "IDSN");        break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-
-    key = "call_speed";
-    switch (wapsetting.call_speed) {
-	case GN_WAP_CALL_AUTOMATIC:    hv_puts (ws, key, "automatic");   break;
-	case GN_WAP_CALL_9600:         hv_puts (ws, key, "9600");        break;
-	case GN_WAP_CALL_14400:        hv_puts (ws, key, "14400");       break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-
-    key = "gsm_data_login";
-    switch (wapsetting.gsm_data_login) {
-	case GN_WAP_LOGIN_MANUAL:      hv_puts (ws, key, "manual");      break;
-	case GN_WAP_LOGIN_AUTOLOG:     hv_puts (ws, key, "automatic");   break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-
-    hv_puts (ws, "number",        wapsetting.number);
-    hv_puts (ws, "gsm_data_ip",   wapsetting.gsm_data_ip);
-    hv_puts (ws, "gsm_data_user", wapsetting.gsm_data_username);
-    hv_puts (ws, "gsm_data_pass", wapsetting.gsm_data_password);
-
-    key = "gprs_connection";
-    switch (wapsetting.gprs_connection) {
-	case GN_WAP_GPRS_WHENNEEDED:   hv_puts (ws, key, "when needed"); break;
-	case GN_WAP_GPRS_ALWAYS:       hv_puts (ws, key, "always");      break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-
-    key = "gprs_auth";
-    switch (wapsetting.gprs_authentication) {
-	case GN_WAP_AUTH_NORMAL:       hv_puts (ws, key, "normal");      break;
-	case GN_WAP_AUTH_SECURE:       hv_puts (ws, key, "secure");      break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-
-    key = "gprs_login";
-    switch (wapsetting.gprs_login) {
-	case GN_WAP_LOGIN_MANUAL:      hv_puts (ws, key, "manual");      break;
-	case GN_WAP_LOGIN_AUTOLOG:     hv_puts (ws, key, "automatic");   break;
-	default:                       hv_puts (ws, key, "unknown");     break;
-	}
-
-    hv_puts (ws, "access_point",  wapsetting.access_point_name);
-    hv_puts (ws, "gprs_ip",       wapsetting.gprs_ip);
-    hv_puts (ws, "gprs_user",     wapsetting.gprs_username);
-    hv_puts (ws, "gprs_pass",     wapsetting.gprs_password);
-    hv_puts (ws, "sms_servicenr", wapsetting.sms_service_number);
-    hv_puts (ws, "sms_servernr",  wapsetting.sms_server_number);
+    hv_puts (ws, "number",          wapsetting.number);
+    hv_puts (ws, "gsm_data_auth",   gn_wap_authentication2str (wapsetting.gsm_data_authentication));
+    hv_puts (ws, "gsm_data_ip",     wapsetting.gsm_data_ip);
+    hv_puts (ws, "gsm_data_login",  gn_wap_login2str          (wapsetting.gsm_data_login));
+    hv_puts (ws, "gsm_data_pass",   wapsetting.gsm_data_password);
+    hv_puts (ws, "gsm_data_user",   wapsetting.gsm_data_username);
+    hv_puts (ws, "gprs_auth",       gn_wap_authentication2str (wapsetting.gprs_authentication));
+    hv_puts (ws, "gprs_connection", gn_wap_gprs2str           (wapsetting.gprs_connection));
+    hv_puts (ws, "gprs_ip",         wapsetting.gprs_ip);
+    hv_puts (ws, "gprs_login",      gn_wap_login2str          (wapsetting.gprs_login));
+    hv_puts (ws, "gprs_pass",       wapsetting.gprs_password);
+    hv_puts (ws, "gprs_user",       wapsetting.gprs_username);
+    hv_puts (ws, "access_point",    wapsetting.access_point_name);
+    hv_puts (ws, "sms_servicenr",   wapsetting.sms_service_number);
+    hv_puts (ws, "sms_servernr",    wapsetting.sms_server_number);
     XS_RETURNr (ws);
     /* GetWapSettings */
 
