@@ -27,6 +27,11 @@
 
 #define unless(e) if (!(e))
 
+#define hv_del(hash,key)      hv_delete (hash, key, strlen (key), 0)
+
+#define _hvfetch(hash,key,sv) (sv = hv_fetch (hash, key, strlen (key), 0))
+#define hv_gets(hash,key,l)   (_hvfetch (hash, key, value) && SvPOK (*value) ? SvPV (*value, l) : NULL)
+
 #define _hvstore(hash,key,sv) (void)hv_store (hash, key, strlen (key), sv, 0)
 #define hv_puts(hash,key,str) _hvstore (hash, key, newSVpv ((char *)(str), 0))
 #define hv_putS(hash,key,s,l) _hvstore (hash, key, newSVpv ((char *)(s),   l))
@@ -77,12 +82,6 @@
     GSMDT->minute = t->tm_min;\
     GSMDT->second = t->tm_sec;\
     }
-
-static int not_here (char *s)
-{
-    croak ("%s not implemented on this architecture", s);
-    return (-1);
-    } /* not_here */
 
 typedef HV HvObject;
 typedef AV AvObject;
@@ -223,6 +222,17 @@ static gn_gsm_number_type get_number_type (const char *number)
     return type;
     } /* get_number_type */
 
+#define set_memtype(where,str)	{ \
+    int _mt = str && *str ? gn_str2memory_type (str) : GN_MT_XX; \
+    if (_mt == GN_MT_XX) { \
+	char s_err[80]; \
+	sprintf (s_err, "ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)", str ? "(NULL)" : str); \
+	set_errors (s_err); \
+	XSRETURN_UNDEF; \
+	} \
+    where = _mt; \
+    } /* set_memtype */
+
 static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
 {
     AV	*t = newAV ();
@@ -337,13 +347,7 @@ GetPhonebook (self, mem_type, start, end)
 	XSRETURN_UNDEF;
 	}
 
-    mt = gn_str2memory_type (mem_type);
-    if (mt == GN_MT_XX) {
-	char s_err[80];
-	sprintf (s_err, "ERROR: Unknown memory type '%s' (use IN, ME, SM, ...)", mem_type);
-	set_errors (s_err);
-	XSRETURN_UNDEF;
-	}
+    set_memtype (mt, mem_type);
 
     if (end <= 0 || end > 255) {
 	gn_memory_status ms = {mt, 0, 0};
@@ -361,7 +365,7 @@ GetPhonebook (self, mem_type, start, end)
 	HV *abe = newHV ();
 
 	Zero (&entry, 1, entry);
-	entry.memory_type = gn_str2memory_type (mem_type);
+	entry.memory_type = mt;
 	memset (entry.name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
 	memset (entry.number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
 
@@ -534,7 +538,7 @@ WritePhonebookEntry (self, pbh)
 
     if (opt_v) warn ("WritePhonebookEntry ({ ... })\n");
 
-    unless (value = hv_fetch (pbh, "memory_type", 11, 0)) {
+    unless (str = hv_gets (pbh, "memory_type", l)) {
 	set_errors ("memory_type is a required attribute in WritePhonebookEntry ()");
 	XSRETURN_UNDEF;
 	}
@@ -542,13 +546,7 @@ WritePhonebookEntry (self, pbh)
     clear_data ();
     Zero (&entry, 1, entry);
 
-    mt = gn_str2memory_type (str = SvPV_nolen (*value));
-    if (mt == GN_MT_XX) {
-	char s_err[80];
-	sprintf (s_err, "ERROR: Unknown memory type '%s' (use ME, SM, ...)", str);
-	set_errors (s_err);
-	XSRETURN_UNDEF;
-	}
+    set_memtype (mt, str);
     entry.memory_type = mt;
 
     unless (value = hv_fetch (pbh, "number", 6, 0)) {
@@ -1063,7 +1061,7 @@ GetSMSFolderList (self)
 	XSRETURN_UNDEF;
 
     fl = newAV ();
-    for (i = 0; i < folderlist.number; i++) {
+    for (i = 0; i < (int)folderlist.number; i++) {
 	HV *f = newHV ();
 	if (opt_v > 1) warn (" + GetSMSFolderStatus (%d)", i);
 	hv_puti (f, "location", i);
@@ -1227,7 +1225,7 @@ GetSMS (self, mem_type, location)
 		message->user_data[0].u.text, message->smsc_time.year,
 		data->sms_folder_list->number, data->sms_folder->name);
 #endif
-	for (i = 0; i < data->sms_folder_list->number; i++) {
+	for (i = 0; i < (int)data->sms_folder_list->number; i++) {
 #ifdef DEBUG_MODULE
 	    int j;
 	    warn ("ID:       %d\n"
@@ -1245,36 +1243,30 @@ GetSMS (self, mem_type, location)
     XSRETURN_UNDEF;
     /* GetSMS */
 
-int
-DeleteSMS (self, memtype, location, foldername)
+void
+DeleteSMS (self, memtype, location)
     HvObject		*self;
     char		*memtype;
     int			location;
-    char		*foldername;
 
-  PREINIT:
+  PPCODE:
+    gn_error		err;
     gn_sms		message;
     gn_sms_folder	folder;
     gn_sms_folder_list	folderlist;
 
-  CODE:
     clear_data ();
     Zero (&message,    1, message);
     Zero (&folder,     1, folder);
     Zero (&folderlist, 1, folderlist);
-    message.memory_type = gn_str2memory_type (memtype);
-    if (message.memory_type == GN_MT_XX)
-	warn (_("Unknown memory type %s (use ME, SM, ...)\n"), memtype);
-    else {
-	message.number        = location;
-	data->sms             = &message;
-	data->sms_folder      = &folder;
-	data->sms_folder_list = &folderlist;
-	RETVAL = gn_sms_delete (data, state);
-	}
+    set_memtype (message.memory_type, memtype);
 
-  OUTPUT:
-    RETVAL
+    message.number        = location;
+    data->sms             = &message;
+    data->sms_folder      = &folder;
+    data->sms_folder_list = &folderlist;
+    err = gn_sms_delete (data, state);
+    XS_RETURNi (err);
 
 void
 SendSMS (self, smshash)
@@ -2036,7 +2028,7 @@ CODE:
 	warn ("Loc:%d\n",wapbookmark->location);
 #endif
 	if (RETVAL == GN_ERR_NONE)
-	  hv_store (waphash, "number", 6, sv_2mortal (newSViv (wapbookmark->location)), 0);
+	  hv_puti (waphash, "number", wapbookmark->location);
 	Safefree (wapbookmark);
 	data->wap_bookmark = NULL;
 }
@@ -2329,7 +2321,7 @@ disconnect (self)
     if (opt_v) warn ("disconnect ()\n");
 
     if (hv_exists (self, "connection", 10)) {
-	hv_delete (self, "connection", 10, 0);
+	(void)hv_del (self, "connection");
 	busterminate ();
 	}
 
