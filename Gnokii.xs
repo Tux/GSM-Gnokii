@@ -51,6 +51,13 @@ static char *_hv_gets (HV *hash, const char *key, STRLEN *l)
     return (str);
     } /* _hv_gets */
 #define hv_gets(hash,key,s,l) (s = _hv_gets (hash, key, &l))
+#define hv_getsl(hash,key,len,dest) {\
+    char   *ptr;\
+    STRLEN pln;\
+    *dest = (char)0;\
+    if (hv_gets (hash, key, ptr, pln))\
+	strncpy (dest, ptr, len);\
+    }
 
 static int _hv_geti (HV *hash, const char *key, int *i)
 {
@@ -576,8 +583,8 @@ WritePhonebookEntry (self, pbh)
 
     if (opt_v) warn ("WritePhonebookEntry ({ ... })\n");
 
-    unless (hv_gets (pbh, "memory_type", str, l)) {
-	set_errors ("memory_type is a required attribute in WritePhonebookEntry ()");
+    unless (hv_gets (pbh, "memorytype", str, l)) {
+	set_errors ("memorytype is a required attribute in WritePhonebookEntry ()");
 	XSRETURN_UNDEF;
 	}
 
@@ -586,18 +593,6 @@ WritePhonebookEntry (self, pbh)
 
     set_memtype (mt, str);
     entry.memory_type = mt;
-    memset (entry.name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
-    memset (entry.number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
-
-    unless (hv_gets (pbh, "number", str, l)) {
-	set_errors ("number is a required attribute in WritePhonebookEntry ()");
-	XSRETURN_UNDEF;
-	}
-    if (l > GN_PHONEBOOK_NUMBER_MAX_LENGTH) {
-	set_errors ("Number is too long");
-	XSRETURN_UNDEF;
-	}
-    strcpy (entry.number, str);
 
     if (hv_geti (pbh, "location", i)) {
 	if (i < 0 || i > 255) {
@@ -614,7 +609,7 @@ WritePhonebookEntry (self, pbh)
 		err = gn_sm_functions (GN_OP_ReadPhonebook, data, state);
 		unless (err == GN_ERR_NONE || err == GN_ERR_EMPTYLOCATION)
 		    break;
-		if (aux.empty || error == GN_ERR_EMPTYLOCATION) {
+		if (aux.empty || err == GN_ERR_EMPTYLOCATION) {
 		    i   = aux.location;
 		    err = GN_ERR_NONE;
 		    break;
@@ -630,6 +625,18 @@ WritePhonebookEntry (self, pbh)
 	}
     entry.location = i;
 
+    memset (entry.number, ' ', GN_PHONEBOOK_NUMBER_MAX_LENGTH + 1);
+    unless (hv_gets (pbh, "number", str, l)) {
+	set_errors ("number is a required attribute in WritePhonebookEntry ()");
+	XSRETURN_UNDEF;
+	}
+    if (l > GN_PHONEBOOK_NUMBER_MAX_LENGTH) {
+	set_errors ("Number is too long");
+	XSRETURN_UNDEF;
+	}
+    strcpy (entry.number, str);
+
+    memset (entry.name,   ' ', GN_PHONEBOOK_NAME_MAX_LENGTH   + 1);
     if (hv_gets (pbh, "name", str, l)) {
 	if (l > GN_PHONEBOOK_NAME_MAX_LENGTH) {
 	    set_errors ("Name is too long");
@@ -647,30 +654,83 @@ WritePhonebookEntry (self, pbh)
 	}
 
     if ((value = hv_fetch (pbh, "person", 6, 0)) && SvROK (*value)) {
-	HV	*p = (HV *)SvRV (*value);
+	HV	*p  = (HV *)SvRV (*value);
+	int	len = GN_PHONEBOOK_PERSON_MAX_LENGTH;
 
 	entry.person.has_person = 1;
-	if (hv_gets (p, "formal_name",      str, l)) strcpy (entry.person.honorific_prefixes, str);
-	if (hv_gets (p, "formal_suffix",    str, l)) strcpy (entry.person.honorific_suffixes, str);
-	if (hv_gets (p, "given_name",       str, l)) strcpy (entry.person.given_name,         str);
-	if (hv_gets (p, "family_name",      str, l)) strcpy (entry.person.family_name,        str);
-	if (hv_gets (p, "additional_names", str, l)) strcpy (entry.person.additional_names,   str);
+	hv_getsl (p, "formal_name",      len, entry.person.honorific_prefixes);
+	hv_getsl (p, "formal_suffix",    len, entry.person.honorific_suffixes);
+	hv_getsl (p, "given_name",       len, entry.person.given_name);
+	hv_getsl (p, "family_name",      len, entry.person.family_name);
+	hv_getsl (p, "additional_names", len, entry.person.additional_names);
 
 	/* Temporary solution. phone driver doesn't handle person struct */
 	if (entry.person.family_name[0]) {
-	    strcpy(entry->subentries[entry.subentries_count].data.number, entry.person.family_name);
-	    entry.subentries[entry.subentries_count].entry_type = GN_PHONEBOOK_ENTRY_LastName;
-	    entry.subentries_count++;
+	    strcpy (entry.subentries[entry.subentries_count].data.number, entry.person.family_name);
+	    entry.subentries[entry.subentries_count++].entry_type = GN_PHONEBOOK_ENTRY_LastName;
 	    }
 	if (entry.person.given_name[0]) {
-	    strcpy(entry->subentries[entry.subentries_count].data.number, entry.person.given_name);
-	    entry.subentries[entry.subentries_count].entry_type = GN_PHONEBOOK_ENTRY_FirstName;
-	    entry.subentries_count++;
+	    strcpy (entry.subentries[entry.subentries_count].data.number, entry.person.given_name);
+	    entry.subentries[entry.subentries_count++].entry_type = GN_PHONEBOOK_ENTRY_FirstName;
 	    }
 	}
 
+    if ((value = hv_fetch (pbh, "address", 7, 0)) && SvROK (*value)) {
+	HV	*a  = (HV *)SvRV (*value);
+	int	len = GN_PHONEBOOK_ADDRESS_MAX_LENGTH;
+
+	entry.address.has_address = 1;
+	hv_getsl (a, "postal",           len, entry.address.post_office_box);
+	hv_getsl (a, "extended_address", len, entry.address.extended_address);
+	hv_getsl (a, "street",           len, entry.address.street);
+	hv_getsl (a, "city",             len, entry.address.city);
+	hv_getsl (a, "state_province",   len, entry.address.state_province);
+	hv_getsl (a, "zipcode",          len, entry.address.zipcode);
+	hv_getsl (a, "country",          len, entry.address.country);
+	}
+
+    /* Add straightforward string subentries */
+#define hv_getsubs(key,type)\
+    if (entry.subentries_count < GN_PHONEBOOK_SUBENTRIES_MAX_NUMBER) {\
+	hv_getsl (pbh, key, GN_PHONEBOOK_NAME_MAX_LENGTH, entry.subentries[entry.subentries_count].data.number);\
+	if (entry.subentries[entry.subentries_count].data.number[0])\
+	    entry.subentries[entry.subentries_count++].entry_type = type;\
+	}
+
+    hv_getsubs ("note",           GN_PHONEBOOK_ENTRY_Note);
+    hv_getsubs ("nickname",       GN_PHONEBOOK_ENTRY_Nickname);
+    hv_getsubs ("e_mail",         GN_PHONEBOOK_ENTRY_Email);
+    hv_getsubs ("postal_address", GN_PHONEBOOK_ENTRY_Postal);
+    hv_getsubs ("url",            GN_PHONEBOOK_ENTRY_URL);
+    hv_getsubs ("company",        GN_PHONEBOOK_ENTRY_Company);
+
+    /* Add number entries */
+#define hv_getsubn(key,type)\
+    if (entry.subentries_count < GN_PHONEBOOK_SUBENTRIES_MAX_NUMBER) {\
+	hv_getsl (pbh, key, GN_PHONEBOOK_NAME_MAX_LENGTH, entry.subentries[entry.subentries_count].data.number);\
+	if (entry.subentries[entry.subentries_count].data.number[0]) {\
+	    entry.subentries[entry.subentries_count  ].entry_type  = GN_PHONEBOOK_ENTRY_Number;\
+	    entry.subentries[entry.subentries_count++].number_type = type;\
+	    }\
+	}
+    hv_getsubn ("tel_home",      GN_PHONEBOOK_NUMBER_Home);
+    hv_getsubn ("tel_cell",      GN_PHONEBOOK_NUMBER_Mobile);
+    hv_getsubn ("tel_fax",       GN_PHONEBOOK_NUMBER_Fax);
+    hv_getsubn ("tel_work",      GN_PHONEBOOK_NUMBER_Work);
+    /* These two cause FAIL
+    hv_getsubn ("tel_common",    GN_PHONEBOOK_NUMBER_Common);
+    hv_getsubn ("tel_general",   GN_PHONEBOOK_NUMBER_General);
+    */
+
+    /* Add date subentries */
+    /* birthday, date */
+
+    if (entry.subentries_count)
+	hv_getsubn ("number",    GN_PHONEBOOK_NUMBER_None);
+
     gn_phonebook_entry_sanitize (&entry);
-    if (opt_v > 5 ) warn (
+    if (opt_v > 5 ) {
+	warn (
 	"  location         => %d,\n"
 	"  number           => '%s',\n"
 	"  name             => '%s',\n"
@@ -690,34 +750,27 @@ WritePhonebookEntry (self, pbh)
 	"    state_province   => '%s',\n"
 	"    zipcode          => '%s',\n"
 	"    country          => '%s',\n"
-	"    },\n"
-	"  birthday         => '%s',\n"
-	"  date             => '%s',\n"
-	"  ext_group        => %d,\n"
-	"  e_mail           => '%s',\n"
-	"  home_address     => '%s',\n"
-	"  note             => '%s',\n"
-	"  tel_home         => '%s',\n"
-	"  tel_cell         => '%s',\n"
-	"  tel_fax          => '%s',\n"
-	"  tel_work         => '%s',\n"
-	"  tel_none         => '%s',\n"
-	"  tel_common       => '%s',\n"
-	"  tel_general      => '%s',\n"
-	"  url              => '%s',\n",
+	"    },\n  [\n",
 	    entry.location, entry.number, entry.name, entry.caller_group,
 	    entry.person.honorific_prefixes, entry.person.honorific_suffixes,
 	    entry.person.given_name, entry.person.family_name,
 	    entry.person.additional_names,
-	    "", "", "", "", "", "", "",
-	    "", "", 0, "", "", "",
-	    "", "", "", "", "", "", "",
-	    "");
+	    entry.address.post_office_box, entry.address.extended_address,
+	    entry.address.street, entry.address.city,
+	    entry.address.state_province, entry.address.zipcode,
+	    entry.address.country);
+	for (i = 0; i < entry.subentries_count; i++) {
+	    warn ("    %02d: %02x %02x '%s',\n", i,
+		entry.subentries[i].entry_type, entry.subentries[i].number_type,
+		entry.subentries[i].data.number);
+	    }
+	warn ("    ]\n  }\n");
+	}
 
     data->phonebook_entry = &entry;
-    err = gn_sm_functions (GN_OP_WritePhonebook, data, state);
-    set_errori (err);
-    XS_RETURNi (entry.location);
+    if (gn_sm_func (self, GN_OP_WritePhonebook))
+	XS_RETURNi (entry.location);
+    XSRETURN_UNDEF;
 
 void
 GetDateTime (self)

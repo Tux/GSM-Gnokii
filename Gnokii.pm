@@ -290,13 +290,13 @@ An addressbook entry looks somewhat like:
   nickname         => "johnny boy",
   note             => "This entry reflects imaginary data",
   postal_address   => "Camper 23",
-  tel_home         => "+31201234567",
-  tel_cell         => "+31612345678",
-  tel_fax          => "+31201234568",
-  tel_work         => "+31201234569",
-  tel_none         => "+31201234570",
-  tel_common       => "+31201234571",
-  tel_general      => "+31201234571",
+  tel_none         => "+31201230000",
+  tel_common       => "+31201230001",
+  tel_home         => "+31612340002",
+  tel_cell         => "+31612340003",
+  tel_fax          => "+31201230004",
+  tel_work         => "+31201230006",
+  tel_general      => "+31201230010",
   url              => "http://www.some.where.com",
 
 =head2 WritePhonebookEntry ({ ... })
@@ -311,13 +311,21 @@ If no C<location> is given, the location used will be the first after
 the last used location. If C<location> is C<0>, it will use the first
 free location.
 
-C<caller_group> ss numeric and should be any of:
+C<caller_group> is numeric and should be any of:
     0: Family
     1: VIPs
     2: Friends
     3: Work
     4: Others
     5: None
+
+Some fields are either ignored by this module, because they cause the
+write to fail (e.g. C<tel_common>, C<tel_general>, and C<tel_none>),
+or because the gnokii library doesn't write them (mainly the C<address>
+and C<person> data seems to get lost).
+
+On success, C<WritePhonbookEntry> returns the location this entry was
+written to. On failure it returns C<undef>.
 
 =head2 GetSpeedDial (number)
 
