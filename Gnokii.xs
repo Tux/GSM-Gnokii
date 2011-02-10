@@ -604,12 +604,25 @@ WritePhonebookEntry (self, pbh)
 	    set_errors ("phonebook location should be in valid range 0..255");
 	    XSRETURN_UNDEF;
 	    }
+	if (i == 0) {	/* find first free slot */
+	    for (i = 1; ; i++) {
+		gn_phonebook_entry aux;
+
+		memcpy (&aux, &entry, sizeof (gn_phonebook_entry));
+		data->phonebook_entry = &aux;
+		data->phonebook_entry->location = i;
+		err = gn_sm_functions (GN_OP_ReadPhonebook, data, state);
+		unless (err == GN_ERR_NONE || err == GN_ERR_EMPTYLOCATION)
+		    break;
+		if (aux.empty || error == GN_ERR_EMPTYLOCATION) {
+		    i   = aux.location;
+		    err = GN_ERR_NONE;
+		    break;
+		    }
+		}
+	    }
 	}
     else {
-	set_errors ("location is required and should be numeric");
-	XSRETURN_UNDEF;
-	}
-    if (i == 0) {
 	gn_memory_status ms = { mt, 0, 0 };
 	data->memory_status = &ms;
 	if (gn_sm_func (self, GN_OP_GetMemoryStatus))
@@ -642,8 +655,21 @@ WritePhonebookEntry (self, pbh)
 	if (hv_gets (p, "given_name",       str, l)) strcpy (entry.person.given_name,         str);
 	if (hv_gets (p, "family_name",      str, l)) strcpy (entry.person.family_name,        str);
 	if (hv_gets (p, "additional_names", str, l)) strcpy (entry.person.additional_names,   str);
+
+	/* Temporary solution. phone driver doesn't handle person struct */
+	if (entry.person.family_name[0]) {
+	    strcpy(entry->subentries[entry.subentries_count].data.number, entry.person.family_name);
+	    entry.subentries[entry.subentries_count].entry_type = GN_PHONEBOOK_ENTRY_LastName;
+	    entry.subentries_count++;
+	    }
+	if (entry.person.given_name[0]) {
+	    strcpy(entry->subentries[entry.subentries_count].data.number, entry.person.given_name);
+	    entry.subentries[entry.subentries_count].entry_type = GN_PHONEBOOK_ENTRY_FirstName;
+	    entry.subentries_count++;
+	    }
 	}
 
+    gn_phonebook_entry_sanitize (&entry);
     if (opt_v > 5 ) warn (
 	"  location         => %d,\n"
 	"  number           => '%s',\n"

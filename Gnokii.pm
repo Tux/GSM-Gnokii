@@ -301,14 +301,15 @@ An addressbook entry looks somewhat like:
 
 =head2 WritePhonebookEntry ({ ... })
 
-Write a phonebook entry. The structure of the hash is as described above
-in C<GetPhonebook>.
+Write a phonebook entry. The structure of the hash is as described
+above in C<GetPhonebook>.
 
-The attributes C<memorytype> and C<number> are required, all other fields
-are optional.
+The attributes C<memorytype> and C<number> are required, all other
+fields are optional.
 
-If no C<location> is given, or location is C<0>, it will use the first free
-location after the last used location.
+If no C<location> is given, the location used will be the first after
+the last used location. If C<location> is C<0>, it will use the first
+free location.
 
 C<caller_group> ss numeric and should be any of:
     0: Family
