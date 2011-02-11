@@ -2370,25 +2370,23 @@ WriteWapSetting (self, wh)
     XS_RETURNi (err);
     /* WriteWapSetting */
 
-int
+void
 ActivateWapSetting (self, location)
-HvObject *self;
-int location;
-PREINIT:
-gn_wap_setting *wapsetting;
-CODE:
-{
-	clear_data ();
-	Newxz (wapsetting, 1, gn_wap_setting);
-	wapsetting->location = location;
-	data->wap_setting = wapsetting;
-	RETVAL = gn_sm_functions (GN_OP_ActivateWAPSetting, data, state);
-	Safefree (wapsetting);
-	data->wap_setting = NULL;
-}
-	/* ActivateWapSetting */
-OUTPUT:
-	RETVAL
+    HvObject		*self;
+    int			location;
+
+  PPCODE:
+    gn_error		err;
+    gn_wap_setting	wapsetting;
+
+    clear_data ();
+    Zero (&wapsetting, 1, wapsetting);
+    wapsetting.location = location;
+    data->wap_setting   = &wapsetting;
+    err = gn_sm_functions (GN_OP_ActivateWAPSetting, data, state);
+    set_errori (err);
+    XS_RETURNi (err);
+    /* ActivateWapSetting */
 
 void
 GetWapBookmark (self, location)
