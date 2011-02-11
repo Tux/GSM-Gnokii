@@ -2181,7 +2181,7 @@ GetRF (self)
     data->rf_level = &rflevel;
     if (gn_sm_func (self, GN_OP_GetRFLevel)) {
 	hv_putn (rf, "level", rflevel);
-	hv_puti (rf, "unit", rfunit);
+	hv_puti (rf, "unit",  rfunit);
 	}
     XS_RETURNr (rf);
     /* GetRF */
@@ -2221,44 +2221,44 @@ GetWapSettings (self, location)
     int			location;
 
   PPCODE:
-    gn_wap_setting	wapsetting;
+    gn_wap_setting	entry;
     HV			*ws;
 
     if (opt_v) warn ("GetWapSettings (%d)\n", location);
 
     clear_data ();
-    Zero (&wapsetting, 1, wapsetting);
-    wapsetting.location = location;
-    data->wap_setting   = &wapsetting;
+    Zero (&entry, 1, entry);
+    entry.location    = location;
+    data->wap_setting = &entry;
     unless (gn_sm_func (self, GN_OP_GetWAPSetting))
 	XSRETURN_UNDEF;
 
     ws = newHV ();
     hv_puti (ws, "location",        location);
-    hv_puts (ws, "name",            wapsetting.name);
-    hv_puts (ws, "home",            wapsetting.home);
+    hv_puts (ws, "name",            entry.name);
+    hv_puts (ws, "home",            entry.home);
 
-    hv_puts (ws, "session",         gn_wap_session2str        (wapsetting.session));
-    hv_puts (ws, "security",        wapsetting.security ? "yes" : "no");
-    hv_puts (ws, "bearer",          gn_wap_bearer2str         (wapsetting.bearer));
-    hv_puts (ws, "call_type",       gn_wap_call_type2str      (wapsetting.call_type));
-    hv_puts (ws, "call_speed",      gn_wap_call_speed2str     (wapsetting.call_speed));
+    hv_puts (ws, "session",         gn_wap_session2str        (entry.session));
+    hv_puts (ws, "security",        entry.security ? "yes" : "no");
+    hv_puts (ws, "bearer",          gn_wap_bearer2str         (entry.bearer));
+    hv_puts (ws, "call_type",       gn_wap_call_type2str      (entry.call_type));
+    hv_puts (ws, "call_speed",      gn_wap_call_speed2str     (entry.call_speed));
 
-    hv_puts (ws, "number",          wapsetting.number);
-    hv_puts (ws, "gsm_data_auth",   gn_wap_authentication2str (wapsetting.gsm_data_authentication));
-    hv_puts (ws, "gsm_data_ip",     wapsetting.gsm_data_ip);
-    hv_puts (ws, "gsm_data_login",  gn_wap_login2str          (wapsetting.gsm_data_login));
-    hv_puts (ws, "gsm_data_pass",   wapsetting.gsm_data_password);
-    hv_puts (ws, "gsm_data_user",   wapsetting.gsm_data_username);
-    hv_puts (ws, "gprs_auth",       gn_wap_authentication2str (wapsetting.gprs_authentication));
-    hv_puts (ws, "gprs_connection", gn_wap_gprs2str           (wapsetting.gprs_connection));
-    hv_puts (ws, "gprs_ip",         wapsetting.gprs_ip);
-    hv_puts (ws, "gprs_login",      gn_wap_login2str          (wapsetting.gprs_login));
-    hv_puts (ws, "gprs_pass",       wapsetting.gprs_password);
-    hv_puts (ws, "gprs_user",       wapsetting.gprs_username);
-    hv_puts (ws, "access_point",    wapsetting.access_point_name);
-    hv_puts (ws, "sms_servicenr",   wapsetting.sms_service_number);
-    hv_puts (ws, "sms_servernr",    wapsetting.sms_server_number);
+    hv_puts (ws, "number",          entry.number);
+    hv_puts (ws, "gsm_data_auth",   gn_wap_authentication2str (entry.gsm_data_authentication));
+    hv_puts (ws, "gsm_data_ip",     entry.gsm_data_ip);
+    hv_puts (ws, "gsm_data_login",  gn_wap_login2str          (entry.gsm_data_login));
+    hv_puts (ws, "gsm_data_pass",   entry.gsm_data_password);
+    hv_puts (ws, "gsm_data_user",   entry.gsm_data_username);
+    hv_puts (ws, "gprs_auth",       gn_wap_authentication2str (entry.gprs_authentication));
+    hv_puts (ws, "gprs_connection", gn_wap_gprs2str           (entry.gprs_connection));
+    hv_puts (ws, "gprs_ip",         entry.gprs_ip);
+    hv_puts (ws, "gprs_login",      gn_wap_login2str          (entry.gprs_login));
+    hv_puts (ws, "gprs_pass",       entry.gprs_password);
+    hv_puts (ws, "gprs_user",       entry.gprs_username);
+    hv_puts (ws, "access_point",    entry.access_point_name);
+    hv_puts (ws, "sms_servicenr",   entry.sms_service_number);
+    hv_puts (ws, "sms_servernr",    entry.sms_server_number);
     XS_RETURNr (ws);
     /* GetWapSettings */
 
@@ -2269,102 +2269,102 @@ WriteWapSetting (self, wh)
 
   PPCODE:
     gn_error		err;
-    gn_wap_setting	wapsetting;
+    gn_wap_setting	entry;
     char		*buf;
     STRLEN		l;
 
     clear_data ();
     /* TODO: This funtion is untested */
-    Zero (&wapsetting, 1, wapsetting);
+    Zero (&entry, 1, entry);
 
-    hv_geti  (wh, "location",         wapsetting.location);
+    hv_geti  (wh, "location",         entry.location);
 
     l = WAP_SETTING_NAME_MAX_LENGTH;
-    hv_getsl (wh, "number",        l, wapsetting.number);
-    hv_getsl (wh, "gsm_data_ip",   l, wapsetting.gsm_data_ip);
-    hv_getsl (wh, "gprs_ip",       l, wapsetting.gprs_ip);
-    hv_getsl (wh, "name",          l, wapsetting.name);
-    hv_getsl (wh, "gsm_data_pass", l, wapsetting.gsm_data_password);
-    hv_getsl (wh, "gprs_pass",     l, wapsetting.gprs_password);
-    hv_getsl (wh, "sms_servicenr", l, wapsetting.sms_service_number);
-    hv_getsl (wh, "sms_servernr",  l, wapsetting.sms_server_number);
+    hv_getsl (wh, "number",        l, entry.number);
+    hv_getsl (wh, "gsm_data_ip",   l, entry.gsm_data_ip);
+    hv_getsl (wh, "gprs_ip",       l, entry.gprs_ip);
+    hv_getsl (wh, "name",          l, entry.name);
+    hv_getsl (wh, "gsm_data_pass", l, entry.gsm_data_password);
+    hv_getsl (wh, "gprs_pass",     l, entry.gprs_password);
+    hv_getsl (wh, "sms_servicenr", l, entry.sms_service_number);
+    hv_getsl (wh, "sms_servernr",  l, entry.sms_server_number);
 
     l = WAP_SETTING_HOME_MAX_LENGTH;
-    hv_getsl (wh, "home",          l, wapsetting.home);
+    hv_getsl (wh, "home",          l, entry.home);
 
     l = WAP_SETTING_USERNAME_MAX_LENGTH;
-    hv_getsl (wh, "gprs_user",     l, wapsetting.gprs_username);
-    hv_getsl (wh, "gsm_data_user", l, wapsetting.gsm_data_username);
+    hv_getsl (wh, "gprs_user",     l, entry.gprs_username);
+    hv_getsl (wh, "gsm_data_user", l, entry.gsm_data_username);
 
     l = WAP_SETTING_APN_MAX_LENGTH;
-    hv_getsl (wh, "access_point",  l, wapsetting.access_point_name);
+    hv_getsl (wh, "access_point",  l, entry.access_point_name);
 
-    hv_getb  (wh, "security",         wapsetting.security);
+    hv_getb  (wh, "security",         entry.security);
 
     hv_gets (wh, "session",         buf, l);
     if (buf && (*buf == 'p' || *buf == 'P'))
-	wapsetting.session                 = GN_WAP_SESSION_PERMANENT;
+	entry.session                 = GN_WAP_SESSION_PERMANENT;
     else
-	wapsetting.session                 = GN_WAP_SESSION_TEMPORARY;
+	entry.session                 = GN_WAP_SESSION_TEMPORARY;
 
     hv_gets (wh, "bearer",          buf, l);
     if (buf && (*buf == 'u' || *buf == 'U'))
-	wapsetting.bearer                  = GN_WAP_BEARER_USSD;
+	entry.bearer                  = GN_WAP_BEARER_USSD;
     else
     if (buf && (*buf == 's' || *buf == 'S'))
-	wapsetting.bearer                  = GN_WAP_BEARER_SMS;
+	entry.bearer                  = GN_WAP_BEARER_SMS;
     else
     if (buf && (*buf == 'g' || *buf == 'G') && (buf[1] == 'p' || buf[1] == 'P'))
-	wapsetting.bearer                  = GN_WAP_BEARER_GPRS;
+	entry.bearer                  = GN_WAP_BEARER_GPRS;
     else
-	wapsetting.bearer                  = GN_WAP_BEARER_GSMDATA;
+	entry.bearer                  = GN_WAP_BEARER_GSMDATA;
 
     hv_gets (wh, "gsm_data_auth",   buf, l);
     if (buf && (*buf == 's' || *buf == 'S'))
-	wapsetting.gsm_data_authentication = GN_WAP_AUTH_SECURE;
+	entry.gsm_data_authentication = GN_WAP_AUTH_SECURE;
     else
-	wapsetting.gsm_data_authentication = GN_WAP_AUTH_NORMAL;
+	entry.gsm_data_authentication = GN_WAP_AUTH_NORMAL;
 
     hv_gets (wh, "gprs_auth",       buf, l);
     if (buf && (*buf == 's' || *buf == 'S'))
-	wapsetting.gprs_authentication     = GN_WAP_AUTH_SECURE;
+	entry.gprs_authentication     = GN_WAP_AUTH_SECURE;
     else
-	wapsetting.gprs_authentication     = GN_WAP_AUTH_NORMAL;
+	entry.gprs_authentication     = GN_WAP_AUTH_NORMAL;
 
     hv_gets (wh, "call_type",       buf, l);
     if (buf && (*buf == 'i' || *buf == 'I'))
-	wapsetting.call_type               = GN_WAP_CALL_ISDN;
+	entry.call_type               = GN_WAP_CALL_ISDN;
     else
-	wapsetting.call_type               = GN_WAP_CALL_ANALOGUE;
+	entry.call_type               = GN_WAP_CALL_ANALOGUE;
 
     hv_gets (wh, "call_speed",      buf, l);
     if (buf && *buf == '9')
-	wapsetting.call_speed              = GN_WAP_CALL_9600;
+	entry.call_speed              = GN_WAP_CALL_9600;
     else
     if (buf && *buf == '1')
-	wapsetting.call_speed              = GN_WAP_CALL_14400;
+	entry.call_speed              = GN_WAP_CALL_14400;
     else
-	wapsetting.call_speed              = GN_WAP_CALL_AUTOMATIC;
+	entry.call_speed              = GN_WAP_CALL_AUTOMATIC;
 
     hv_gets (wh, "gsm_data_login",  buf, l);
     if (buf && (*buf == 'm' || *buf == 'M'))
-	wapsetting.gsm_data_login          = GN_WAP_LOGIN_MANUAL;
+	entry.gsm_data_login          = GN_WAP_LOGIN_MANUAL;
     else
-	wapsetting.gsm_data_login          = GN_WAP_LOGIN_AUTOLOG;
+	entry.gsm_data_login          = GN_WAP_LOGIN_AUTOLOG;
 
     hv_gets (wh, "gprs_login",      buf, l);
     if (buf && (*buf == 'm' || *buf == 'M'))
-	wapsetting.gprs_login              = GN_WAP_LOGIN_MANUAL;
+	entry.gprs_login              = GN_WAP_LOGIN_MANUAL;
     else
-	wapsetting.gprs_login              = GN_WAP_LOGIN_AUTOLOG;
+	entry.gprs_login              = GN_WAP_LOGIN_AUTOLOG;
 
     hv_gets (wh, "gprs_connection", buf, l);
     if (buf && (*buf == 'a' || *buf == 'A'))
-	wapsetting.gprs_connection         = GN_WAP_GPRS_ALWAYS;
+	entry.gprs_connection         = GN_WAP_GPRS_ALWAYS;
     else
-	wapsetting.gprs_connection         = GN_WAP_GPRS_WHENNEEDED;
+	entry.gprs_connection         = GN_WAP_GPRS_WHENNEEDED;
 
-    data->wap_setting = &wapsetting;
+    data->wap_setting = &entry;
     err = gn_sm_functions (GN_OP_WriteWAPSetting, data, state);
     set_errori (err);
     XS_RETURNi (err);
@@ -2377,12 +2377,12 @@ ActivateWapSetting (self, location)
 
   PPCODE:
     gn_error		err;
-    gn_wap_setting	wapsetting;
+    gn_wap_setting	entry;
 
     clear_data ();
-    Zero (&wapsetting, 1, wapsetting);
-    wapsetting.location = location;
-    data->wap_setting   = &wapsetting;
+    Zero (&entry, 1, entry);
+    entry.location = location;
+    data->wap_setting   = &entry;
     err = gn_sm_functions (GN_OP_ActivateWAPSetting, data, state);
     set_errori (err);
     XS_RETURNi (err);
@@ -2394,19 +2394,19 @@ GetWapBookmark (self, location)
     int			location;
 
   PPCODE:
-    gn_wap_bookmark	wapbookmark;
+    gn_wap_bookmark	entry;
 
     if (opt_v) warn ("GetWapBookmark (%d)\n", location);
 
     clear_data ();
-    Zero (&wapbookmark, 1, wapbookmark);
-    wapbookmark.location = location;
-    data->wap_bookmark   = &wapbookmark;
-    if (gn_sm_functions (GN_OP_GetWAPBookmark, data, state) == GN_ERR_NONE) {
+    Zero (&entry, 1, entry);
+    entry.location = location;
+    data->wap_bookmark   = &entry;
+    if (gn_sm_func (self, GN_OP_GetWAPBookmark)) {
 	HV *wbm = newHV ();
 	hv_puti (wbm, "location", location);
-	hv_puts (wbm, "name",     wapbookmark.name);
-	hv_puts (wbm, "url",      wapbookmark.URL);
+	hv_puts (wbm, "name",     entry.name);
+	hv_puts (wbm, "url",      entry.URL);
 	XS_RETURNr (wbm);
 	}
     XSRETURN_UNDEF;
