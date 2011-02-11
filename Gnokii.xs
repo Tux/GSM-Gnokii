@@ -2412,48 +2412,39 @@ GetWapBookmark (self, location)
     XSRETURN_UNDEF;
     /* GetWapBookmark */
 
-int
-WriteWapBookmark (self, waphash)
-HvObject *self;
-HV *waphash;
-PREINIT:
-gn_wap_bookmark *wapbookmark;
-CODE:
-{
-	clear_data ();
-	Newxz (wapbookmark, 1, gn_wap_bookmark);
-	strcpy (wapbookmark->name, SvPV_nolen (*hv_fetch (waphash, "name", 4, 0)));
-	strcpy (wapbookmark->URL, SvPV_nolen (*hv_fetch (waphash, "url", 3, 0)));
-	data->wap_bookmark = wapbookmark;
-	RETVAL = gn_sm_functions (GN_OP_WriteWAPBookmark, data, state);
-#ifdef DEBUG_MODULE
-	warn ("Loc:%d\n",wapbookmark->location);
-#endif
-	if (RETVAL == GN_ERR_NONE)
-	  hv_puti (waphash, "number", wapbookmark->location);
-	Safefree (wapbookmark);
-	data->wap_bookmark = NULL;
-}
-	/* WriteWapBookmark */
-OUTPUT:
-	RETVAL
+void
+WriteWapBookmark (self, wh)
+    HvObject		*self;
+    HV			*wh;
 
-int
+  PPCODE:
+    gn_wap_bookmark	entry;
+
+    clear_data ();
+    Zero (&entry, 1, entry);
+    hv_geti  (wh, "location",                  entry.location);
+    hv_getsl (wh, "name", WAP_NAME_MAX_LENGTH, entry.name);
+    hv_getsl (wh, "url",  WAP_URL_MAX_LENGTH,  entry.URL);
+    data->wap_bookmark = &entry;
+    if (gn_sm_func (self, GN_OP_WriteWAPBookmark))
+	XS_RETURNi (entry.location);
+    XSRETURN_UNDEF;
+    /* WriteWapBookmark */
+
+void
 DeleteWapBookmark (self, location)
-HvObject *self;
-int location;
-PREINIT:
-gn_wap_bookmark *wapbookmark;
-CODE:
-{
-	clear_data ();
-	Newxz (wapbookmark, 1, gn_wap_bookmark);
-	wapbookmark->location = location;
-	data->wap_bookmark = wapbookmark;
-	RETVAL = gn_sm_functions (GN_OP_DeleteWAPBookmark, data, state);
-	Safefree (wapbookmark);
-	data->wap_bookmark = NULL;
-}
-	/* DeleteWapBookmark */
-OUTPUT:
-	RETVAL
+    HvObject		*self;
+    int			location;
+
+  PPCODE:
+    gn_error		err;
+    gn_wap_bookmark	entry;
+
+    clear_data ();
+    Zero (&entry, 1, entry);
+    entry.location     = location;
+    data->wap_bookmark = &entry;
+    err = gn_sm_functions (GN_OP_DeleteWAPBookmark, data, state);
+    set_errori (err);
+    XS_RETURNi (err);
+    /* DeleteWapBookmark */
