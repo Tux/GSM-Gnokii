@@ -180,74 +180,10 @@ Connect to the phone.
 
 Disconnects the phone.
 
-=head2 GetProfiles (start, end)
+=head2 PrintError (err)
 
-Returns a reference to a list of hashes with profile information, like:
-
-  number           => 1,
-  name             => "Tux",
-  defaultname      => "Default",
-  call_alert       => "Ringing",
-  ringtonenumber   => 3,
-  volume_level     => "Level 5",
-  message_tone     => "Beep once",
-  keypad_tone      => "Level 2",
-  warning_tone     => "Off",
-  vibration        => "On",
-  caller_groups    => 2,
-  automatic_answer => "Off",
-
-Note that at some models, requesting profile information outside of the
-known range might cause the phone to power off.
-
-My own phone timed out on all C<GetProfile> requests.
-
-=head2 GetDateTime
-
-Returns a reference to a hash with two elements, like:
-
-  date             => "2011-01-23 17:22:37",
-  timestamp        => 1295799757,
-
-=head2 SetDateTime (timestamp)
-
-Set date and time on device. The C<timestamp> is a unix timestamp as
-returned by the C<time> function.
-
-=head2 GetAlarm
-
-Returns a reference to a hash with alarm info, like:
-
-  alarm            => "07:25",
-  state            => "off",
-
-=head2 GetMemoryStatus
-
-Returns a reference to a list of memory status entries, like:
-
-  dcfree           =>   236,	# Dialed numbers
-  dcused           =>    20,
-  enfree           => 12544,	# Emergency numbers
-  enused           =>     0,
-  fdfree           => 12544,	# Fied-dial numbers
-  fdused           =>     0,
-  mcfree           =>   493,	# Missed calls
-  mcused           =>    19,
-  onfree           =>    15,	# Own numbers
-  onused           =>     0,
-  phonefree        =>  1902,	# Internal phone memory
-  phoneused        =>    98,
-  rcfree           =>   748,	# Received calls
-  rcused           =>    20,
-  simfree          =>   250,	# SIM card
-  simused          =>     0,
-
-=head2 GetPowerStatus
-
-Returns a reference to a hash with power related information like:
-
-  level            => "42.8571434020996094",
-  source           => "battery",
+Prints the string representation of the C<err> value to the current
+STDERR handle.
 
 =head2 GetPhonebook (type, start, end)
 
@@ -321,7 +257,7 @@ C<caller_group> is numeric and should be any of:
 
 Some fields are either ignored by this module, because they cause the
 write to fail (e.g. C<tel_common>, C<tel_general>, and C<tel_none>),
-or because the gnokii library doesn't write them (mainly the C<address>
+or because the gnokii library does not write them (mainly the C<address>
 and C<person> data seems to get lost).
 
 On success, C<WritePhonbookEntry> returns the location this entry was
@@ -340,14 +276,86 @@ To get the address book entry to the speed dial, use
 
   my $ab = $gsm->GetPhonebook ("ME", 23, 23);
 
-=head2 GetIMEI
+=head2 SetSpeedDial (self, memtype, location, number)
 
-Returns a reference to a hash with the IMEI data, like:
+Set the speed dial specified by the arguments. C<memtype> should be
+either C<ME> or C<SM>, C<number> is the key number, usually allowed
+are keys C<2> through C<9>, C<location> is the location in the phonebook
+of memory type C<memorytype>. See L<GetPhonebook>.
 
-  model            => "RM-274",
-  revision         => "V 07.21",
-  imei             => "345634563456678",
-  manufacturer     => "...",
+=head2 GetDateTime
+
+Returns a reference to a hash with two elements, like:
+
+  date             => "2011-01-23 17:22:37",
+  timestamp        => 1295799757,
+
+=head2 SetDateTime (timestamp)
+
+Set date and time on device. The C<timestamp> is a unix timestamp as
+returned by the C<time> function.
+
+=head2 GetAlarm
+
+Returns a reference to a hash with alarm info, like:
+
+  alarm            => "07:25",
+  state            => "off",
+
+=head2 SetAlarm (hour, minute)
+
+Set and enable alarm. Hour should be between 0 and 23, Minute between
+0 and 59.
+
+=head2 GetCalendarNotes (start, end)
+
+Returns a reference to a list of calendar note hashes, like:
+
+  location         => 1,
+  date             => "2011-11-11 11:11:11",
+  type             => "Meeting",
+  text             => "Be there or be fired",
+  mlocation        => "Board room",
+  alarm            => "2010-10-10 10:10:10",
+  recurrence       => "Weekly",
+  number           => "+31612345678",
+
+=head2 WriteCalendarNote ({ ... })
+
+Set a calendar note,  attributes marked with a * are required
+
+  date             => time + 86400,   # * Date and time of note
+  text             => "Call John!",   # * Note text
+  type             => "call",         #   Note type, defaults to MEMO
+  number           => "+31612345678", #   Required for type CALL
+  mlocation        => "Board room",   #   Adviced for type MEET
+  alarm            => time + 86400,   #   Alarm time
+  recurrence       => "Weekly",       #   Recurrence, defaults to NEVER
+
+Valid note types are C<REMINDER>, C<CALL>, C<MEETING>, C<BIRTHDAY>,
+and C<MEMO>. Type match is done case-ignorant and types may be
+abbreviated to 4 characters.
+
+Valid recurrence specifications are C<NEVER>, C<DAILY>, C<WEEKLY>,
+C<2WEEKLY>, C<YEARLY>.  Type match is done case-ignorant and types
+may be abbreviated to 4 characters.
+
+=head2 GetTodo (start, end)
+
+Returns a reference to a list of TODO note hashes, like:
+
+  location         => 1,
+  text             => "Finish GSM::Gnokii",
+  priority         => "low",
+
+=head2 WriteTodo ({ ... })
+
+Write a TODO note. The contents of the hashref should match what GetTodo
+returns for a fetched TODO entry.
+
+=head2 DeleteAllTodos
+
+Will delete B<all> TODO items.
 
 =head2 GetDisplayStatus
 
@@ -362,6 +370,65 @@ Returns a reference to a hash with the display status, all boolean, like:
   keyboard_lock    => 0,
   sms_storage_full => 0,
 
+=head2 GetIMEI
+
+Returns a reference to a hash with the IMEI data, like:
+
+  model            => "RM-274",
+  revision         => "V 07.21",
+  imei             => "345634563456678",
+  manufacturer     => "...",
+
+=head2 GetPowerStatus
+
+Returns a reference to a hash with power related information like:
+
+  level            => "42.8571434020996094",
+  source           => "battery",
+
+=head2 GetMemoryStatus
+
+Returns a reference to a list of memory status entries, like:
+
+  dcfree           =>   236,	# Dialed numbers
+  dcused           =>    20,
+  enfree           => 12544,	# Emergency numbers
+  enused           =>     0,
+  fdfree           => 12544,	# Fied-dial numbers
+  fdused           =>     0,
+  mcfree           =>   493,	# Missed calls
+  mcused           =>    19,
+  onfree           =>    15,	# Own numbers
+  onused           =>     0,
+  phonefree        =>  1902,	# Internal phone memory
+  phoneused        =>    98,
+  rcfree           =>   748,	# Received calls
+  rcused           =>    20,
+  simfree          =>   250,	# SIM card
+  simused          =>     0,
+
+=head2 GetProfiles (start, end)
+
+Returns a reference to a list of hashes with profile information, like:
+
+  number           => 1,
+  name             => "Tux",
+  defaultname      => "Default",
+  call_alert       => "Ringing",
+  ringtonenumber   => 3,
+  volume_level     => "Level 5",
+  message_tone     => "Beep once",
+  keypad_tone      => "Level 2",
+  warning_tone     => "Off",
+  vibration        => "On",
+  caller_groups    => 2,
+  automatic_answer => "Off",
+
+Note that at some models, requesting profile information outside of the
+known range might cause the phone to power off.
+
+My own phone timed out on all C<GetProfile> requests.
+
 =head2 GetSecurity
 
 Returns a reference to a hash with the security information, like:
@@ -369,12 +436,87 @@ Returns a reference to a hash with the security information, like:
   status           => "Nothing to enter",
   security_code    => "...",
 
-=head2 GetRF
+=head2 GetLogo ({ options })
 
-Returns a reference to a hash with the RF data, like:
+Return a reference to a hash with Logo information, like:
 
-  level            => 100,
-  unit             =>   5,
+  text             => "Foo",
+  type             => "text",
+  bitmap           => "...",
+  size             => 64,
+  height           => 8,
+  width            => 8,
+
+Supported options:
+
+  type             => "...",  # text/dealer/op/startup/caller/
+                              #  picture/emspicture/emsanimation
+  callerindex      => 0,      # required for type => "caller". NYI
+
+=head2 GetRingtoneList
+
+Returns a reference to a hash with ringtone list information, like:
+
+  count            =>   1,
+  userdef_count    =>  10,
+  userdef_location => 231,
+
+=head2 GetRingtone (location)
+
+Returns a reference to a hash with ringtone information, like:
+
+  location         => 1,
+  length           => 15,
+  name             => 'Tones',
+  ringtone         => "\002J:UQ\275\271\225\314\004",
+
+=head2 GetDirTree (memorytype)
+
+Return a reference to a (recursive) list of folders and files in the
+phone. The C<memorytype> should be either C<"ME"> for phone memory,
+which will descend into C<A:\*>, or C<"SM">, which will descend into
+the SIM card C<B:\*>. It will return a hash reference like:
+
+  dir_size         => 128,
+  file_count       => 18,
+  memorytype       => "ME",
+  path             => "A:\\*",
+  tree             => [ ... ]
+
+The C<tree> entry in the hash is a list of entries in the folder, of
+which each is a reference to a hash with entry information like:
+
+  date             => "2006-01-01 00:00:00",
+  file             => undef,
+  folder_id        => 0,
+  name             => "FIM_punique_id",
+  size             => 66,
+  type             => "None",
+
+If the entry has a size greater than 0, there might be added a file_id:
+
+  date             => "2005-01-01 12:00:00",
+  file             => undef,
+  folder_id        => 0,
+  id               => "00.00.10.00.01.8e",
+  name             => "Flower2.jpg",
+  size             => 10203,
+  type             => "None",
+
+If the entry is a folder itself, it will be extended with tree info
+like in the top node:
+
+  date             => "2006-01-01 00:00:00",
+  dir_size         => 128,
+  file             => undef,
+  file_count       => 13,
+  folder_id        => 0,
+  name             => "predefgallery",
+  path             => "A:\\predefgallery\\*",
+  size             => 0,
+  tree             => [ ... ]
+
+Note that these calls might take a long time with big trees.
 
 =head2 GetSMSCenter (start, end)
 
@@ -450,6 +592,13 @@ Sends an SMS, attributes marked with a * are required
 
 All other attribute are silently ignored.
 
+=head2 GetRF
+
+Returns a reference to a hash with the RF data, like:
+
+  level            => 100,
+  unit             =>   5,
+
 =head2 GetNetworkInfo
 
 Returns a reference to a hash with the network information, like:
@@ -459,44 +608,6 @@ Returns a reference to a hash with the network information, like:
   networkcode      => "204 08",
   cellid           => "b56f",
   lac              => 1127,
-
-=head2 GetRingtoneList
-
-Returns a reference to a hash with ringtone list information, like:
-
-  count            =>   1,
-  userdef_count    =>  10,
-  userdef_location => 231,
-
-=head2 GetRingtone (location)
-
-Returns a reference to a hash with ringtone information, like:
-
-  location         => 1,
-  length           => 15,
-  name             => 'Tones',
-  ringtone         => "\002J:UQ\275\271\225\314\004",
-
-=head2 GetCalendarNotes (start, end)
-
-Returns a reference to a list of calendar note hashes, like:
-
-  location         => 1,
-  date             => "2011-11-11 11:11:11",
-  type             => "Meeting",
-  text             => "Be there or be fired",
-  mlocation        => "Board room",
-  alarm            => "2010-10-10 10:10:10",
-  recurrence       => "Weekly",
-  number           => "+31612345678",
-
-=head2 GetTodo (start, end)
-
-Returns a reference to a list of TODO note hashes, like:
-
-  location         => 1,
-  text             => "Finish GSM::Gnokii",
-  priority         => "low",
 
 =head2 GetWapSettings (location)
 
@@ -527,6 +638,15 @@ location, like:
   sms_servicenr    => "+31612345678",
   sms_servernr     => 456,
 
+=head2 WriteWapSetting ({ ... })
+
+Write a WAP setting. Content of the hashref is like what
+L<GetWapSetting> returns.
+
+=head2 ActivateWapSetting (location)
+
+Active WAP setting at location C<location>.
+
 =head2 GetWapBookmark (location)
 
 Returns a reference to a hash with WAP bookmark information, like:
@@ -535,115 +655,30 @@ Returns a reference to a hash with WAP bookmark information, like:
   name             => "perl",
   url              => "http://p3rl.org",
 
-=head2 GetLogo ({ options })
+=head2 WriteWapBookmark ({ ... })
 
-Return a reference to a hash with Logo information, like:
+Write a WAP bookmark. Content of the hashref should match what
+L<GetWapBookmark> returns.
 
-  text             => "Foo",
-  type             => "text",
-  bitmap           => "...",
-  size             => 64,
-  height           => 8,
-  width            => 8,
+=head2 DeleteWapBookmark (location)
 
-Supported options:
+Delete WAP bookmark at C<location>.
 
-  type             => "...",  # text/dealer/op/startup/caller/
-                              #  picture/emspicture/emsanimation
-  callerindex      => 0,      # required for type => "caller". NYI
-
-=head2 PrintError (err)
-
-Prints the string representation of the C<err> value to the current
-STDERR handle.
-
-=head2 DeleteAllTodos
-
-Will delete B<all> TODO items.
-
-=head2 SetAlarm (hour, minute)
-
-Set and enable alarm. Hour should be between 0 and 23, Minute between
-0 and 59.
-
-=head2 WriteCalendarNote ({ ... })
-
-Set a calendar note,  attributes marked with a * are required
-
-  date             => time + 86400,   # * Date and time of note
-  text             => "Call John!",   # * Note text
-  type             => "call",         #   Note type, defaults to MEMO
-  number           => "+31612345678", #   Required for type CALL
-  mlocation        => "Board room",   #   Adviced for type MEET
-  alarm            => time + 86400,   #   Alarm time
-  recurrence       => "Weekly",       #   Recurrence, defaults to NEVER
-
-Valid note types are C<REMINDER>, C<CALL>, C<MEETING>, C<BIRTHDAY>,
-and C<MEMO>. Type match is done case-ignorant and types may be
-abbreviated to 4 characters.
-
-Valid recurrence specifications are C<NEVER>, C<DAILY>, C<WEEKLY>,
-C<2WEEKLY>, C<YEARLY>.  Type match is done case-ignorant and types
-may be abbreviated to 4 characters.
-
-=head2 GetDirTree (memorytype)
-
-Return a reference to a (recursive) list of folders and files in the
-phone. The C<memorytype> should be either C<"ME"> for phone memory,
-which will descend into C<A:\*>, or C<"SM">, which will descend into
-the SIM card C<B:\*>. It will return a hash reference like:
-
-  dir_size         => 128,
-  file_count       => 18,
-  memorytype       => "ME",
-  path             => "A:\\*",
-  tree             => [ ... ]
-
-The C<tree> entry in the hash is a list of entries in the folder, of
-which each is a reference to a hash with entry information like:
-
-  date             => "2006-01-01 00:00:00",
-  file             => undef,
-  folder_id        => 0,
-  name             => "FIM_punique_id",
-  size             => 66,
-  type             => "None",
-
-If the entry has a size greater than 0, there might be added a file_id:
-
-  date             => "2005-01-01 12:00:00",
-  file             => undef,
-  folder_id        => 0,
-  id               => "00.00.10.00.01.8e",
-  name             => "Flower2.jpg",
-  size             => 10203,
-  type             => "None",
-
-If the entry is a folder itself, it will be extended with tree info
-like in the top node:
-
-  date             => "2006-01-01 00:00:00",
-  dir_size         => 128,
-  file             => undef,
-  file_count       => 13,
-  folder_id        => 0,
-  name             => "predefgallery",
-  path             => "A:\\predefgallery\\*",
-  size             => 0,
-  tree             => [ ... ]
-
-Note that these calls might take a long time with big trees.
-
-=head2 ActivateWapSetting
-=head2 DeleteWapBookmark
 =head2 GetFileList
+
+NYI.
+
 =head2 GetFiles
+
+NYI.
+
 =head2 GetMMS
-=head2 SetSpeedDial
-=head2 WriteTodo
-=head2 WriteWapBookmark
-=head2 WriteWapSetting
+
+NYI.
+
 =head2 version
+
+Returns the version of the module.
 
 =head1 OTHER RESOURCES
 

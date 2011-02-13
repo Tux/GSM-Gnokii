@@ -1,10 +1,12 @@
-personal_ws-1.1 en 56
+personal_ws-1.1 en 62
 ActivateWapSetting
 addressbook
 Agouros
+API
 CreateSMSFolder
 DeleteAllTodos
 DeleteSMS
+DeleteSMSFolder
 DeleteWapBookmark
 GetAlarm
 GetCalendarNotes
@@ -40,6 +42,9 @@ IMEI
 libgnokii
 memorytype
 MEMORYTYPES
+memtype
+NYI
+phonebook
 PhoneBook
 PrintError
 ringtone
@@ -49,6 +54,7 @@ SetDateTime
 SetSpeedDial
 SMS
 STDERR
+timestamp
 WAP
 WriteCalendarNote
 WritePhonebookEntry
