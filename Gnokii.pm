@@ -470,12 +470,14 @@ Returns a reference to a hash with ringtone information, like:
   name             => 'Tones',
   ringtone         => "\002J:UQ\275\271\225\314\004",
 
-=head2 GetDirTree (memorytype)
+=head2 GetDirTree (memorytype, depth)
 
 Return a reference to a (recursive) list of folders and files in the
 phone. The C<memorytype> should be either C<"ME"> for phone memory,
 which will descend into C<A:\*>, or C<"SM">, which will descend into
-the SIM card C<B:\*>. It will return a hash reference like:
+the SIM card C<B:\*>. Descending is limited to C<depth> levels, where
+passing C<0> for C<depth> means unlimited. It will return a hash
+reference like:
 
   dir_size         => 128,
   file_count       => 18,

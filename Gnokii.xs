@@ -286,7 +286,7 @@ static gn_gsm_number_type get_number_type (const char *number)
     where = _mt; \
     } /* set_memtype */
 
-static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
+static AV *walk_tree (HV *self, char *path, gn_file_list *fl, int depth)
 {
     AV	*t = newAV ();
     int	i;
@@ -334,7 +334,8 @@ static AV *walk_tree (HV *self, char *path, gn_file_list *fl)
 		hv_puts (f, "path",		full_name);
 		hv_puti (f, "file_count",	dl.file_count);
 		hv_puti (f, "dir_size",		dl.size);
-		hv_putr (f, "tree", walk_tree (self, full_name, &dl));
+		if (depth > 0)
+		    hv_putr (f, "tree", walk_tree (self, full_name, &dl, depth - 1));
 		}
 	    }
 
@@ -1241,7 +1242,7 @@ DeleteAllTodos (self)
    * GetLogo ({ ... })
    * GetRingtoneList ()
    * GetRingtone (location)
-   * GetDirTree (memorytype)
+   * GetDirTree (memorytype, depth)
    *
    * ###########################################################################
    */
@@ -1637,9 +1638,10 @@ GetRingtone (self, location)
     /* GetRingtone */
 
 void
-GetDirTree (self, memorytype)
+GetDirTree (self, memorytype, depth)
     HvObject		*self;
     char		*memorytype;
+    int			depth;
 
   PPCODE:
     char		*mt;
@@ -1670,7 +1672,8 @@ GetDirTree (self, memorytype)
     hv_puti (dt, "file_count",	fl.file_count);
     hv_puti (dt, "dir_size",	fl.size);
 
-    hv_putr (dt, "tree",	walk_tree (self, mt, &fl));
+    if (depth <= 0 || depth > 0x7fff) depth = 0x7fff;
+    hv_putr (dt, "tree",	walk_tree (self, mt, &fl, depth));
 
     XS_RETURNr (dt);
     /* GetDirTree */

@@ -4,6 +4,23 @@ use strict;
 use warnings;
 use autodie;
 
+sub usage
+{
+    my $err = shift and select STDERR;
+    print "usage: $0 [--depth=0] [ME|SM]\n";
+    exit $err;
+    } # usage
+
+use Getopt::Long qw(:config bundling);
+my $depth = 0;
+GetOptions (
+    "help|?"	=> sub { usage (0); },
+
+    "d|depth=i"	=> \$depth,
+    ) or usage (1);
+
+@ARGV or @ARGV = qw( ME SM );
+
 use GSM::Gnokii;
 use JSON;
 
@@ -12,10 +29,7 @@ my $gsm = GSM::Gnokii->new ({ verbose => 9 })->connect;
 binmode STDOUT, ":encoding(utf-8)";
 
 print to_json ({
-    DirTree => {
-	ME  => $gsm->GetDirTree ("ME"),
-	SM  => $gsm->GetDirTree ("SM"),
-	}
+    DirTree => { map {( $_ => $gsm->GetDirTree ($_, $depth) )} @ARGV }
     }, {
 	utf8	=> 1,
 	pretty	=> 1,
