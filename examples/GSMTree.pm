@@ -5,7 +5,7 @@ package Tk::Gnokii::GSMTree;
 use strict;
 use warnings;
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 
 use Carp;
 
@@ -74,6 +74,7 @@ sub configure
 
 my %mt = ( A => "ME", B => "SM" );
 my %dt;
+my %fi;
 
 sub _cleanpath
 {
@@ -210,6 +211,29 @@ sub has_subdir
     exists $dt{$mt}{$dir}{tree} and return 1;
     return 0;
     } # has_subdir
+
+sub fileinfo
+{
+    my ($w, $dir) = @_;
+    my $mt = $w->privateData->{memtype};
+    my $e = _cleanpath ($dir);
+    # print STDERR "Returning info on $mt $e\n";
+    unless ($fi{$mt}{$e}) {
+	my ($d, $n) = $e eq "/" ? ("/", "") : ($e =~ m{^(.*)/([^/]+)$});
+	$d = _cleanpath ($d);
+	my %di = %{$dt{$mt}{$d}};
+	if (my ($f) = grep { $_->{name} eq $n } @{$di{tree}}) {
+	    for (keys %$f) {
+		$_ eq "tree" and next;
+		$di{"f_$_"} = $f->{$_};
+		}
+	    }
+	delete $di{tree};
+	$fi{$mt}{$e} = \%di;
+	}
+    #DDumper $fi{$mt}{$e};
+    return $fi{$mt}{$e};
+    } # fileinfo
 
 sub dirnames
 {

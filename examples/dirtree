@@ -69,16 +69,31 @@ use Tk::Gnokii::GSMTree;
 my $mw = MainWindow->new;
 
 #y $dt = $mw->GSMTree (-directory => "/predefgallery")->pack;
-my $dt = $mw->GSMTree (-gsm => $gsm, -memtype => "ME", -width => 40, -height => 800)->pack;
+my $dt = $mw->GSMTree (
+    -gsm     => $gsm,
+    -memtype => "ME",
+    -width   => 40,
+    -height  => 80,
+    -browsecmd => \&x_info,
+    )->pack (-side => "left", -anchor => "nw");
 $mw->update;
 $dt->chdir ("/");
 $mw->update;
-$dt->chdir ("/predefgallery");
-$mw->update;
-$dt->chdir ("/predefgallery/predefgraphics");
-$mw->update;
+#$dt->chdir ("/predefgallery");
+#$mw->update;
+#$dt->chdir ("/predefgallery/predefgraphics");
+#$mw->update;
 open my $log, ">", "cache.out";
 print $log scalar $dt->show_cache ();
 close $log;
 
 MainLoop;
+
+sub x_info
+{
+    print STDERR "XI (@{[join', '=>@_]})\n";
+    @_ == 1 or return;
+    my $dir = shift;
+    my $info = $dt->fileinfo ($dir);
+    print STDERR DDumper $info;
+    } # x_info
