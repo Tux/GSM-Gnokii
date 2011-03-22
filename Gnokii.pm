@@ -520,6 +520,10 @@ like in the top node:
 
 Note that these calls might take a long time with big trees.
 
+=head2 GetDir (memorytype, path, depth)
+
+Like C<GetDirTree>, but with a default depth of C<1>, and a starting point.
+
 =head2 GetSMSCenter (start, end)
 
 Returns a reference to a list of SMS Center information hashes like:

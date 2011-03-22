@@ -1243,6 +1243,7 @@ DeleteAllTodos (self)
    * GetRingtoneList ()
    * GetRingtone (location)
    * GetDirTree (memorytype, depth)
+   * GetDir (memorytype, path, depth)
    *
    * ###########################################################################
    */
@@ -1648,14 +1649,14 @@ GetDirTree (self, memorytype, depth)
     gn_file_list	fl;
     HV			*dt;
 
-    if (opt_v) warn ("GetDirTree (%s)\n", memorytype);
+    if (opt_v) warn ("GetDirTree (%s, %d)\n", memorytype, depth);
 
 	 if (!strcmp (memorytype, "ME"))
 	mt = "A:";
     else if (!strcmp (memorytype, "SM"))
 	mt = "B:";
     else {
-	set_errors ("usage: GetDirTree ('ME' | 'SM')");
+	set_errors ("usage: GetDirTree ('ME' | 'SM', depth)");
 	XSRETURN_UNDEF;
 	}
 
@@ -1677,6 +1678,49 @@ GetDirTree (self, memorytype, depth)
 
     XS_RETURNr (dt);
     /* GetDirTree */
+
+void
+GetDir (self, memorytype, path, depth)
+    HvObject		*self;
+    char		*memorytype;
+    char		*path;
+    int			depth;
+
+  PPCODE:
+    char		*mt;
+    gn_file_list	fl;
+    HV			*dt;
+
+    if (opt_v) warn ("GetDir (%s, %s, %d)\n", memorytype, path, depth);
+
+	 if (!strcmp (memorytype, "ME"))
+	mt = "A:";
+    else if (!strcmp (memorytype, "SM"))
+	mt = "B:";
+    else {
+	set_errors ("usage: GetDir ('ME' | 'SM', path, depth)");
+	XSRETURN_UNDEF;
+	}
+
+    clear_data ();
+    Zero (&fl, 1, fl);
+    sprintf (fl.path, "%s%s\\*", mt, path);
+    if (opt_v > 1) warn ("GetDir (%s)\n", fl.path);
+    data->file_list = &fl;
+    unless (gn_sm_func (self, GN_OP_GetFileList))
+	XSRETURN_UNDEF;
+
+    dt = newHV ();
+    hv_puts (dt, "memorytype",	memorytype);
+    hv_puts (dt, "path",	mt);
+    hv_puti (dt, "file_count",	fl.file_count);
+    hv_puti (dt, "dir_size",	fl.size);
+
+    if (depth <= 0 || depth > 0x7fff) depth = 1;
+    hv_putr (dt, "tree",	walk_tree (self, mt, &fl, depth));
+
+    XS_RETURNr (dt);
+    /* GetDir */
 
   /* ###########################################################################
    * SMS Functionality

@@ -3,36 +3,76 @@
 use strict;
 use warnings;
 use autodie;
+use Data::Peek;
 
 sub usage
 {
     my $err = shift and select STDERR;
-    print "usage: $0 [--depth=0] [ME|SM]\n";
+    print "usage: $0 [--depth=0] [ME|SM] [path]\n";
     exit $err;
     } # usage
 
 use Getopt::Long qw(:config bundling);
 my $depth = 0;
+my $gui   = 0;
 GetOptions (
     "help|?"	=> sub { usage (0); },
 
     "d|depth=i"	=> \$depth,
+    "x|x11|gui"	=> \$gui,
     ) or usage (1);
 
-@ARGV or @ARGV = qw( ME SM );
+my @mt;
+my @path;
+for (@ARGV) {
+    if (m/^(me|sm)$/i) {
+	push @mt, uc $_;
+	}
+    else {
+	s{[/\\]*$}{};
+	s{^[/\\]*}{/};
+	s{/}{\\}g;
+	push @path, $_;
+	}
+    }
+
+@mt or @mt = qw( ME SM );
 
 use GSM::Gnokii;
 use JSON;
 
 my $gsm = GSM::Gnokii->new ({ verbose => 9 })->connect;
+END { $gsm->disconnect; }
 
-binmode STDOUT, ":encoding(utf-8)";
+DDumper { mt => \@mt, path => \@path };
 
-print to_json ({
-    DirTree => { map {( $_ => $gsm->GetDirTree ($_, $depth) )} @ARGV }
-    }, {
+unless ($gui) {
+    binmode STDOUT, ":encoding(utf-8)";
+
+    my %dt;
+    foreach my $mt (@mt) {
+	$dt{$mt} = @path
+	    ? [ map { [ $gsm->GetDir ($mt, $_, $depth) ] } @path ]
+	    : $gsm->GetDirTree ($mt, $depth);
+	}
+
+    print to_json (\%dt, {
 	utf8	=> 1,
 	pretty	=> 1,
 	});
+    exit 0;
+    }
 
-$gsm->disconnect;
+use Tk;
+use Tk::Gnokii::GSMTree;
+
+my $mw = MainWindow->new;
+
+#y $dt = $mw->GSMTree (-directory => "/predefgallery")->pack;
+my $dt = $mw->GSMTree (-gsm => $gsm, -memtype => "ME", -width => 40, -height => 800)->pack;
+$dt->chdir ("/");
+$dt->chdir ("/predefgallery");
+$dt->chdir ("/predefgallery/predefgraphics");
+$dt->show_cache ();
+
+MainLoop;
