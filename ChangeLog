@@ -2,6 +2,8 @@
     - Fixed WriteWAPSetting, ActivateWapSetting, WriteWapBookmark,
       and DeleteWapBookmark
     - Enable descending depth to dirtree ()
+    - Implemented GetDir ()
+    - Add Tk GUI to examples/dirtree (and a module for it)
     - Implemented GetFile ()
 
 0.04  10-02-2011

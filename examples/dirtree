@@ -16,6 +16,7 @@ use Getopt::Long qw(:config bundling);
 my $depth = 0;
 my $gui   = 0;
 my $opt_v = 1;
+my $mtype = "ME";
 GetOptions (
     "help|?"		=> sub { usage (0); },
 
@@ -68,22 +69,92 @@ unless ($gui) {
 
 use Tk;
 use GSM::Gnokii::Tk::GSMTree;
+use Tk::ROText;
 
 my $mw = MainWindow->new;
 
 my $dt = $mw->GSMTree (
     -gsm     => $gsm,
-    -memtype => "ME",
+    -memtype => $mtype,
     -width   => 40,
     -height  => 80,
     -browsecmd => \&x_info,
     )->pack (-side => "left", -anchor => "nw");
 my $fi = $mw->Frame ()->pack (-side => "left", -anchor => "nw");
 my %fi;
-for (qw( name date size id type folder_id )) {
+my %cache;
+for (qw( path name date size id type folder_id )) {
     my $f = $fi->Frame ()->pack (qw( -side top -expand 1 -fill x ));
     $f->Label (-text => $_, -width => 10, -foreground => "Green4", -anchor => "w")->pack (qw( -side left -anchor w -fill both -expand 1 ));
     $f->Label (-textvariable => \$fi{"f_$_"}, -width => 40, -anchor => "w")->pack (qw( -side left -anchor w -fill both -expand 1 ));
+    }
+my $txt;
+my $filename;
+{   my $f = $fi->Frame  ()->pack (qw( -side top -expand 1 -fill x    -anchor nw ));
+    my $t = $fi->ROText ()->pack (qw( -side top -expand 1 -fill both -anchor nw ));
+    my $i = $fi->Frame  ()->pack (qw( -side top -expand 1 -fill both -anchor nw ));
+    $f->Button (
+	-text		=> "Save",
+	-command	=> sub {
+	    unless ($filename) {
+		$t->delete ("0.0", "end");
+		$t->insert ("end", "No filename");
+		return;
+		}
+
+	    my $path = $fi{f_path};
+	    $t->insert ("end", "Saving $path to $filename\n");
+	    $path =~ s{/}{\\}g;
+	    substr $path, 0, 0, $mtype eq "SM" ? "B:" : "A:";
+
+	    $cache{$path} //= $gsm->GetFile ($path);
+	    my $h = $cache{$path};
+	    if ($h) {
+		$t->insert ("end", sprintf "\n\nLength: %d\n", $h->{size});
+		if (open my $fh, ">", $filename) {
+		    print $fh $h->{file};
+		    close $fh;
+		    $t->insert ("end", "Done");
+		    }
+		else {
+		    $t->insert ("end", "Fail: $!\n");
+		    }
+		}
+	    else {
+		$t->insert ("end", "ERROR: ".$gsm->{ERROR});
+		}
+	    },
+	)->pack (qw( -side left -expand 0 -fill none ));
+    $f->Entry (-textvariable => \$filename, -width => 14)->pack (qw( -side left -expand 0 -fill none ));
+    $f->Button (
+	-text		=> "Show",
+	-command	=> sub {
+	    $t->delete ("0.0", "end");
+	    my $path = $fi{f_path};
+	    $t->insert ("end", "Content for $path\n");
+	    $path =~ s{/}{\\}g;
+	    substr $path, 0, 0, $mtype eq "SM" ? "B:" : "A:";
+
+	    $cache{$path} //= $gsm->GetFile ($path);
+	    my $h = $cache{$path};
+	    if ($h) {
+		$t->insert ("end", sprintf "\n\nLength: %d\n--8<---\n", $h->{size});
+		$t->insert ("end", DDisplay ($h->{file}));
+		$t->insert ("end", "-->8---");
+		}
+	    else {
+		$t->insert ("end", "ERROR: ".$gsm->{ERROR});
+		}
+	    },
+	)->pack (qw( -side left -expand 0 -fill none ));
+    $f->Button (
+	-text		=> "Preview",
+	-command	=> sub {
+	    $t->delete ("0.0", "end");
+	    $t->insert ("end", "Sorry, preview not yet implemented");
+	    },
+	)->pack (qw( -side left -expand 0 -fill none ));
+    $txt = $t;
     }
 
 $mw->update;
@@ -109,5 +180,8 @@ sub x_info
     my $info = $dt->fileinfo ($dir);
     $_ = "" for values %fi;
     $fi{$_} = $info->{$_} for keys %$info;
+    $fi{f_path} = $dir;
+    ($filename = $dir) =~ s{.*/}{};
+    $txt->delete ("0.0", "end");
     $opt_v > 2 and print STDERR DDumper $info;
     } # x_info
