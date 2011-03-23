@@ -291,7 +291,7 @@ static AV *walk_tree (HV *self, char *path, gn_file_list *fl, int depth)
     AV	*t = newAV ();
     int	i;
 
-    if (opt_v > 1) warn ("Traverse path %s\n", path);
+    if (opt_v > 3) warn ("Traverse path %s (depth = %d)\n", path, depth);
 
     for (i = 0; i < fl->file_count; i++) {
 	HV	*f = newHV ();

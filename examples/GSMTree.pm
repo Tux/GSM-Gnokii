@@ -45,7 +45,7 @@ sub Populate
 	    }
 	$args = { %args };
 	}
-    DDumper { Data => $data, Args => $args };
+    # DDumper { Data => $data, Args => $args };
 
     $w->SUPER::Populate ($args);
     $w->ConfigSpecs (
