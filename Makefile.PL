@@ -29,7 +29,7 @@ WriteMakefile (
     ABSTRACT     => "API to libgnokii",
     AUTHOR       => "H.Merijn Brand <h.merijn\@xs4all.nl>",
     LICENSE      => "perl",
-    VERSION_FROM => "Gnokii.pm",
+    VERSION_FROM => "lib/GSM/Gnokii.pm",
     PREREQ_PM    => {	"DynaLoader"    => 0,
 			"Config"        => 0,
 			"Test::More"    => 0,

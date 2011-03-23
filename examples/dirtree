@@ -67,7 +67,7 @@ unless ($gui) {
     }
 
 use Tk;
-use Tk::Gnokii::GSMTree;
+use GSM::Gnokii::Tk::GSMTree;
 
 my $mw = MainWindow->new;
 

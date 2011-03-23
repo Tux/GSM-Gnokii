@@ -1,4 +1,4 @@
-package Tk::Gnokii::GSMTree;
+package GSM::Gnokii::Tk::GSMTree;
 
 # Derived from DirTree.pm
 

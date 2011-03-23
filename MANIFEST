@@ -2,7 +2,8 @@ ChangeLog
 README
 MANIFEST
 Makefile.PL
-Gnokii.pm
+lib/GSM/Gnokii.pm
+lib/GSM/Gnokii/Tk/GSMTree.pm
 Gnokii.xs
 perlobject.map
 typemap
