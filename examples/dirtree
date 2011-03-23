@@ -44,7 +44,7 @@ use JSON;
 my $gsm = GSM::Gnokii->new ({ verbose => 9 })->connect;
 END { $gsm->disconnect; }
 
-DDumper { mt => \@mt, path => \@path };
+# DDumper { mt => \@mt, path => \@path };
 
 unless ($gui) {
     binmode STDOUT, ":encoding(utf-8)";
@@ -76,6 +76,14 @@ my $dt = $mw->GSMTree (
     -height  => 80,
     -browsecmd => \&x_info,
     )->pack (-side => "left", -anchor => "nw");
+my $fi = $mw->Frame ()->pack (-side => "left", -anchor => "nw");
+my %fi;
+for (qw( name date size id type folder_id )) {
+    my $f = $fi->Frame ()->pack (qw( -side top -expand 1 -fill x ));
+    $f->Label (-text => $_, -width => 10, -foreground => "Green4", -anchor => "w")->pack (qw( -side left -anchor w -fill both -expand 1 ));
+    $f->Label (-textvariable => \$fi{"f_$_"}, -width => 40, -anchor => "w")->pack (qw( -side left -anchor w -fill both -expand 1 ));
+    }
+
 $mw->update;
 $dt->chdir ("/");
 $mw->update;
@@ -91,9 +99,11 @@ MainLoop;
 
 sub x_info
 {
-    print STDERR "XI (@{[join', '=>@_]})\n";
+    # print STDERR "XI (@{[join', '=>@_]})\n";
     @_ == 1 or return;
     my $dir = shift;
     my $info = $dt->fileinfo ($dir);
-    print STDERR DDumper $info;
+    $_ = "" for values %fi;
+    $fi{$_} = $info->{$_} for keys %$info;
+    #print STDERR DDumper $info;
     } # x_info
