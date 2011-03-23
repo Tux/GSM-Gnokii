@@ -138,7 +138,7 @@ For methods that return a status C<$err>, the return code in C<$err> is
 =item undef
 
 When undefined, you passed conflicting or illegal options. I this case,
-it is very likely that C<$gsm->{ERROR}> contains an explanation.
+it is very likely that C<< $gsm->{ERROR} >> contains an explanation.
 
 =item 0
 
@@ -147,9 +147,9 @@ All is well: operation completed successfully.
 =item *
 
 Any other value is either the return code from the call was performed,
-in which case the value of C<$gsm->{ERROR}> should have been set to tell
+in which case the value of C<< $gsm->{ERROR} >> should have been set to tell
 the cause of failure, or it is set to a sensible return code, like the
-new location of the item that was added. In that case, C<$gsm->{ERROR}>
+new location of the item that was added. In that case, C<< $gsm->{ERROR} >>
 will contain something like C<"no error / no data">.
 
 =back
