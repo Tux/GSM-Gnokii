@@ -67,9 +67,15 @@ unless ($gui) {
     exit 0;
     }
 
-use Tk;
 use GSM::Gnokii::Tk::GSMTree;
+use Tk;
 use Tk::ROText;
+use Tk::JPEG;
+use Tk::PNG;
+use Tk::TIFF;
+use Tk::Bitmap;
+use Tk::Pixmap;
+use Tk::Photo;
 
 my $mw = MainWindow->new;
 
@@ -88,8 +94,28 @@ for (qw( path name date size id type folder_id )) {
     $f->Label (-text => $_, -width => 10, -foreground => "Green4", -anchor => "w")->pack (qw( -side left -anchor w -fill both -expand 1 ));
     $f->Label (-textvariable => \$fi{"f_$_"}, -width => 40, -anchor => "w")->pack (qw( -side left -anchor w -fill both -expand 1 ));
     }
-my $txt;
-my $filename;
+my ($txt, $img, $filename);
+my $img_dash = $mw->Pixmap ("dash", -data => join "\n",
+    qq(/* XPM */),
+    qq(static char *dash[] = {),
+    qq("4 3 2 1",),
+    qq("  c none",),
+    qq("x c #000000",),
+    qq("    ",),
+    qq(" xx ",),
+    qq("    "),
+    qq(};));
+
+sub GSM::Gnokii::get_file
+{
+    my ($gsm, $path) = @_;
+    $path =~ s{/}{\\}g;
+    substr $path, 0, 0, $mtype eq "SM" ? "B:" : "A:";
+
+    $cache{$path} //= $gsm->GetFile ($path);
+    return $cache{$path};
+    } # get_file
+
 {   my $f = $fi->Frame  ()->pack (qw( -side top -expand 1 -fill x    -anchor nw ));
     my $t = $fi->ROText ()->pack (qw( -side top -expand 1 -fill both -anchor nw ));
     my $i = $fi->Frame  ()->pack (qw( -side top -expand 1 -fill both -anchor nw ));
@@ -104,12 +130,7 @@ my $filename;
 
 	    my $path = $fi{f_path};
 	    $t->insert ("end", "Saving $path to $filename\n");
-	    $path =~ s{/}{\\}g;
-	    substr $path, 0, 0, $mtype eq "SM" ? "B:" : "A:";
-
-	    $cache{$path} //= $gsm->GetFile ($path);
-	    my $h = $cache{$path};
-	    if ($h) {
+	    if (my $h = $gsm->get_file ($path)) {
 		$t->insert ("end", sprintf "\n\nLength: %d\n", $h->{size});
 		if (open my $fh, ">", $filename) {
 		    print $fh $h->{file};
@@ -132,12 +153,7 @@ my $filename;
 	    $t->delete ("0.0", "end");
 	    my $path = $fi{f_path};
 	    $t->insert ("end", "Content for $path\n");
-	    $path =~ s{/}{\\}g;
-	    substr $path, 0, 0, $mtype eq "SM" ? "B:" : "A:";
-
-	    $cache{$path} //= $gsm->GetFile ($path);
-	    my $h = $cache{$path};
-	    if ($h) {
+	    if (my $h = $gsm->get_file ($path)) {
 		$t->insert ("end", sprintf "\n\nLength: %d\n--8<---\n", $h->{size});
 		$t->insert ("end", DDisplay ($h->{file}));
 		$t->insert ("end", "-->8---");
@@ -151,9 +167,24 @@ my $filename;
 	-text		=> "Preview",
 	-command	=> sub {
 	    $t->delete ("0.0", "end");
-	    $t->insert ("end", "Sorry, preview not yet implemented");
+	    my $path = $fi{f_path};
+	    $t->insert ("end", "Preview for $path\n");
+	    if (my $h = $gsm->get_file ($path)) {
+		$t->insert ("end", sprintf "\n\nLength: %d\n", $h->{size});
+		if (my $p = $mw->Photo (-data => $h->{file})) {
+		    $img->configure (-image => $p);
+		    }
+		else {
+		    $t->insert ("end", "\nCannot convert to Tk::Photo");
+		    }
+		}
+	    else {
+		$t->insert ("end", "ERROR: ".$gsm->{ERROR});
+		}
 	    },
 	)->pack (qw( -side left -expand 0 -fill none ));
+    $img = $i->Label (-image => $img_dash, -anchor => "nw",
+	)->pack (qw( -side left -expand 0 -fill none -anchor nw ));
     $txt = $t;
     }
 
@@ -183,5 +214,6 @@ sub x_info
     $fi{f_path} = $dir;
     ($filename = $dir) =~ s{.*/}{};
     $txt->delete ("0.0", "end");
+    $img->configure (-image => $img_dash);
     $opt_v > 2 and print STDERR DDumper $info;
     } # x_info
