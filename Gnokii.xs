@@ -316,7 +316,7 @@ static AV *walk_tree (HV *self, char *path, gn_file_list *fl, int depth)
 	    strcpy (ff.name, full_name);
 	    data->file = &ff;
 	    if (gn_sm_func (self, GN_OP_GetFileId)) {
-		char buf[16];
+		char buf[24];
 		sprintf (buf, "%02x.%02x.%02x.%02x.%02x.%02x",
 		    ff.id[0], ff.id[1], ff.id[2], ff.id[3], ff.id[4], ff.id[5]);
 		hv_puts (f, "id", buf);
