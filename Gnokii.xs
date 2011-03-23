@@ -370,7 +370,14 @@ _Initialize (self)
 
     unless (gn_lib_init () == GN_ERR_NONE)
 	croak (_("Failed to initialize libgnokii.\n"));
+ 
+    if (opt_v) {
+	char *version;
 
+	hv_gets (self, "gsm_gnokii_version", version, err);
+	warn ("GSM::Gnokii-%s - libgnokii-%s\n", version ? version : "?",
+	    LIBGNOKII_VERSION_STRING);
+	}
     hv_puts (self, "libgnokii_version", LIBGNOKII_VERSION_STRING);
 
     err = businit (self);
