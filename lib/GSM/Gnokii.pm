@@ -524,6 +524,17 @@ Note that these calls might take a long time with big trees.
 
 Like C<GetDirTree>, but with a default depth of C<1>, and a starting point.
 
+=head2 GetFile (path)
+
+Fetches a file from the phone. The C<path> should be in phone format, e.g.
+
+  my $h = $gsm->GetFile ("A:\\FIM_fixed_id");
+
+On success, a hashref is returned with two entries
+
+  size             => 8,
+  file             => "\1\0\0\0\0\0\3\0",
+
 =head2 GetSMSCenter (start, end)
 
 Returns a reference to a list of SMS Center information hashes like:

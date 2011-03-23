@@ -1244,6 +1244,7 @@ DeleteAllTodos (self)
    * GetRingtone (location)
    * GetDirTree (memorytype, depth)
    * GetDir (memorytype, path, depth)
+   * GetFile (path)
    *
    * ###########################################################################
    */
@@ -1721,6 +1722,37 @@ GetDir (self, memorytype, path, depth)
 
     XS_RETURNr (dt);
     /* GetDir */
+
+void
+GetFile (self, path)
+    HvObject		*self;
+    char		*path;
+
+  PPCODE:
+    gn_file		fi;
+    HV			*dt;
+
+    if (opt_v) warn ("GetFile (%s)\n", path);
+
+    clear_data ();
+    Zero (&fi, 1, fi);
+    snprintf (fi.name, sizeof (fi.name), "%s", path);
+
+    data->file = &fi;
+    data->progress_indication = NULL;
+    unless (gn_sm_func (self, GN_OP_GetFile)) {
+	set_errors ("GetFile () failed to get file");
+	XSRETURN_UNDEF;
+	}
+
+    if (opt_v > 1) warn ("GetFile (%s) -> size %d\n", fi.name, fi.file_length);
+
+    dt = newHV ();
+    hv_puti (dt, "size", fi.file_length);
+    hv_putS (dt, "file", fi.file, fi.file_length);
+
+    XS_RETURNr (dt);
+    /* GetFile */
 
   /* ###########################################################################
    * SMS Functionality
