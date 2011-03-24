@@ -72,10 +72,11 @@ use Tk;
 use Tk::ROText;
 use Tk::JPEG;
 use Tk::PNG;
-use Tk::TIFF;
+#se Tk::TIFF;
 use Tk::Bitmap;
 use Tk::Pixmap;
 use Tk::Photo;
+use File::Temp qw( tempfile );
 
 my $mw = MainWindow->new;
 
@@ -171,12 +172,17 @@ sub GSM::Gnokii::get_file
 	    $t->insert ("end", "Preview for $path\n");
 	    if (my $h = $gsm->get_file ($path)) {
 		$t->insert ("end", sprintf "\n\nLength: %d\n", $h->{size});
-		if (my $p = $mw->Photo (-data => $h->{file})) {
+		my ($fh, $filename) = tempfile ();
+		print $fh $h->{file};
+		close $fh;
+		#           $mw->Photo (-data => $h->{file}) doen't work on jpeg
+		if (my $p = $mw->Photo (-file => $filename)) {
 		    $img->configure (-image => $p);
 		    }
 		else {
 		    $t->insert ("end", "\nCannot convert to Tk::Photo");
 		    }
+		unlink $filename;
 		}
 	    else {
 		$t->insert ("end", "ERROR: ".$gsm->{ERROR});
@@ -191,10 +197,6 @@ sub GSM::Gnokii::get_file
 $mw->update;
 $dt->chdir ("/");
 $mw->update;
-#$dt->chdir ("/predefgallery");
-#$mw->update;
-#$dt->chdir ("/predefgallery/predefgraphics");
-#$mw->update;
 if ($opt_v > 1) {
     open my $log, ">", "cache.out";
     print $log scalar $dt->show_cache ();
