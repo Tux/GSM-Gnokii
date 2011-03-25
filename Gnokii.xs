@@ -836,8 +836,7 @@ GetSpeedDial (self, location)
 
 	hv_puti (sd, "number",   speeddial->number);
 	hv_puti (sd, "location", speeddial->location);
-	ssv = av_fetch ((AV *)SvRV (*hv_fetch (self, "MEMORY_TYPES", 12, 0)), speeddial->memory_type, 0);
-	hv_puts (sd, "memory",   SvPV_nolen (*ssv));
+	hv_puts (sd, "memory",   gn_memory_type2str (speeddial->memory_type));
 	XS_RETURNr (sd);
 	}
     XSRETURN_UNDEF;
