@@ -16,6 +16,8 @@ our @EXPORT_OK   = ( @{ $EXPORT_TAGS{all} } );
 our @EXPORT      = qw( );
 our $VERSION     = "0.05";
 
+bootstrap GSM::Gnokii $VERSION;
+
 my @MEMORYTYPES = qw(
     ME SM FD ON EN DC RC MC LD MT TA CB IN OU AR TE
     F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 F13 F14 F15 F16 F17 F18 F19 F20
@@ -33,12 +35,12 @@ sub new
     @_ > 0 &&   ref $_[0] ne "HASH"	and return;
     my $attr  = shift || {};
 
-    bless {
+    my $gsm = bless {
 # TODO:
 #	device			=> "00:11:22:33:44:55",
 #	model			=> "3109",
 #
-#	connection		=> "bluetooth",
+#	connected		=> "bluetooth",
 #	initlength		=> 0,
 #	use_locking		=> "no",
 #	serial_baudrate		=> 19200,
@@ -52,16 +54,17 @@ sub new
 	gsm_gnokii_version	=> $VERSION,
 	verbose			=> $attr->{verbose} || 0,
 	}, $class;
+    $gsm->_Initialize ();
+    $gsm;
     } # new
-
-bootstrap GSM::Gnokii $VERSION;
 
 sub connect
 {
     my $self = shift;
 
-    $self->{connection}   = $self->_Initialize ();
-    $self->{MEMORY_TYPES} = \@MEMORYTYPES;
+    $self->{connected} = $self->_Connect ();
+    $self->{verbose} and
+	warn ("# GSM::Gnokii-$VERSION - libgnokii-$self->{libgnokii_version}\n");
     $self;
     } # connect
 
@@ -191,7 +194,7 @@ Returns a reference to an array of PhoneBook entries. Each entry has
 been filled with as much as data as available from the entry in the
 phone.
 
-The C<type> argument reflects the memory type. See "MEMORYTYPES" below.
+The C<type> argument reflects the memory type. See L</MEMORYTYPES>.
 The C<start> argument is the first entry to retrieve. Counting starts
 at 1, not 0. The C<end> argument may be C<0>, meaning "to the end".
 

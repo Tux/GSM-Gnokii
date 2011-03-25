@@ -181,38 +181,6 @@ static void busterminate (void)
 	}
     } /* busterminate */
 
-static int businit (HV *self)
-{
-    gn_error err;
-
-    if (opt_v) warn ("Starting businit ...\n");
-
-    err = gn_lib_phoneprofile_load_from_file (configfile, configmodel, &state);
-    unless (err == GN_ERR_NONE) {
-	set_errori (err);
-	if (configfile)
-	    warn (_("File: %s\n"), configfile);
-	if (configmodel)
-	    warn (_("Phone section: [phone_%s]\n"), configmodel);
-	return 2;
-	}
-
-    if (opt_v) warn ("Phone profile loaded\n");
-    /* register cleanup function */
-    atexit (busterminate);
-    /* signal(SIGINT, bussignal); */
-
-    if (opt_v) warn ("Opening phone ...\n");
-    unless ((err = gn_lib_phone_open (state)) == GN_ERR_NONE) {
-	set_errori (err);
-	return 2;
-	}
-
-    clear_err ();
-    data = &state->sm_data;
-    return 0;
-    } /* businit */
-
 static void clear_data (void)
 {
     gn_data_clear (data);
@@ -362,8 +330,6 @@ _Initialize (self)
     HV		*self;
 
   PPCODE:
-    int		err;
-
     opt_v = SvIV (*hv_fetch (self, "verbose", 7, 0));
 
     if (opt_v) warn ("initialize ({ ... })\n");
@@ -371,21 +337,45 @@ _Initialize (self)
     unless (gn_lib_init () == GN_ERR_NONE)
 	croak (_("Failed to initialize libgnokii.\n"));
  
-    if (opt_v) {
-	char *version;
-
-	hv_gets (self, "gsm_gnokii_version", version, err);
-	warn ("GSM::Gnokii-%s - libgnokii-%s\n", version ? version : "?",
-	    LIBGNOKII_VERSION_STRING);
-	}
     hv_puts (self, "libgnokii_version", LIBGNOKII_VERSION_STRING);
 
-    err = businit (self);
-    unless (err == GN_ERR_NONE)
-	croak ("Init failed");
-
-    XSRETURN (err);
+    XSRETURN (0);
     /* _Initialise */
+
+void
+_Connect (self)
+    HV		*self;
+
+  PPCODE:
+    gn_error	err;
+
+    if (opt_v) warn ("connect ()\n");
+
+    err = gn_lib_phoneprofile_load_from_file (configfile, configmodel, &state);
+    unless (err == GN_ERR_NONE) {
+	set_errori (err);
+	if (configfile)
+	    warn (_("File: %s\n"), configfile);
+	if (configmodel)
+	    warn (_("Phone section: [phone_%s]\n"), configmodel);
+	croak ("no profile loaded");
+	}
+
+    if (opt_v) warn ("Phone profile loaded\n");
+    /* register cleanup function */
+    atexit (busterminate);
+    /* signal(SIGINT, bussignal); */
+
+    if (opt_v) warn ("Opening phone ...\n");
+    unless ((err = gn_lib_phone_open (state)) == GN_ERR_NONE) {
+	set_errori (err);
+	croak ("connect failed");
+	}
+
+    clear_err ();
+    data = &state->sm_data;
+    XS_RETURNi (1);
+    /* _Connect */
 
 void
 disconnect (self)
@@ -394,8 +384,8 @@ disconnect (self)
   PPCODE:
     if (opt_v) warn ("disconnect ()\n");
 
-    if (hv_exists (self, "connection", 10)) {
-	(void)hv_del (self, "connection");
+    if (hv_exists (self, "connected", 9)) {
+	(void)hv_del (self, "connected");
 	busterminate ();
 	}
 
