@@ -43,7 +43,7 @@ static char *_hv_gets (HV *hash, const char *key, STRLEN *l)
     if (opt_v > 5) warn ("hv_gets (%s)\n", key);
     unless (value = hv_fetch (hash, key, strlen (key), 0))
 	return (NULL);
-    unless (SvPOK (*value))
+    unless (SvPOK (*value) || SvPOKp (*value))
 	return (NULL);
     str = SvPV (*value, len);
     *l = len;
@@ -67,7 +67,7 @@ static int _hv_geti (HV *hash, const char *key, int *i)
     *i = 0;
     unless (value = hv_fetch (hash, key, strlen (key), 0))
 	return (0);
-    unless (SvIOK (*value))
+    unless (SvIOK (*value) || SvIOKp (*value))
 	return (0);
     *i = SvIV (*value);
     if (opt_v > 5) warn ("hv_geti (%s) = %d\n", key, *i);
@@ -820,7 +820,6 @@ GetSpeedDial (self, location)
 
   PPCODE:
     gn_speed_dial	*speeddial;
-    SV			**ssv;
 
     if (opt_v) warn ("Get Speed Dial %d\n", location);
 
