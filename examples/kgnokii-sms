@@ -43,7 +43,7 @@ $opt_v and print STDERR "Read phonebook ...\n";
 my @pb;
 get_pb ();
 
-my ($t_number, $t_name, $t_entry, $status) = ("number", "name", "", "");
+my ($t_number, $t_name, $t_entry, $t_idx, $status) = ("number", "name", "", -1, "");
 
 if ($msg =~ m/\S/ && @pb == 1) {
     $opt_v and print STDERR "Sending message ...\n";
@@ -107,7 +107,7 @@ my $f_btn = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -
     get_levels ();
     }
 
-@pb == 1 and ($t_number, $t_name) = ($pb[0][1], $pb[0][2]);
+@pb == 1 and ($t_number, $t_name, $t_idx) = ($pb[0][1], $pb[0][2], 0);
 $f_tgt->Label (
     -text		=> "To",
     -font		=> $font{text},
@@ -129,8 +129,9 @@ my $be = $f_tgt->BrowseEntry (
     -autolistwidth	=> 1,
     -variable		=> \$t_entry,
     -browse2cmd		=> sub {
-	($t_number, $t_name) = @{$pb[$_[1]]}[1, 2];
-	printf STDERR "%3d: %-13s %-20.20s = %s\n", $_[1], $t_number, $t_name, $t_entry;
+	$t_idx = $_[1];
+	($t_number, $t_name) = @{$pb[$t_idx]}[1, 2];
+	printf STDERR "%3d: %-13s %-20.20s = %s\n", $t_idx, $t_number, $t_name, $t_entry;
 	},
     -relief		=> "sunken",
     -font		=> $font{text},
@@ -190,7 +191,7 @@ sub get_pb
 		    $name = join " " => $p->{given_name}, $p->{family_name};
 		}
 	    my $number = $_->{tel_cell} || $_->{number};
-	    [ $idx, $number, $name ];
+	    [ $idx, $number, $name, undef, $_ ];
 	    } @{$gsm->GetPhonebook ("ME", 1, 0) || []};
     {   my $maxlen = max map { length $_->[2] } @pb;
 	$_->[3] = sprintf "%3d: %-*s %s", $_->[0], $maxlen, $_->[2], $_->[1] for @pb;
@@ -231,7 +232,7 @@ sub send_msg
 
 sub add_contact
 {
-    my %c = (
+    my $c = {
 	memorytype      => "ME",
 	location        => 0,
 	number          => "+31612345678",
@@ -250,19 +251,23 @@ sub add_contact
 	date            => "2011-02-03",        # TODO
 	ext_group       => 3,                   # TODO
 	e_mail          => "miranda\@hotmail.com",
-        home_address    => "Kerkstraat 3",      # Doesn't work
-        nickname        => "Mirrie",
-        note            => "Notitie",
+	home_address    => "Kerkstraat 3",      # Doesn't work
+	nickname        => "Mirrie",
+	note            => "Notitie",
 #	tel_none        => "+31600000000",      # FAIL
 #	tel_common      => "+31600000001",      # FAIL
 	tel_home        => "+31612345678",
 	tel_cell        => "+31612345678",
-        tel_fax         => "+31612345678",
-        tel_work        => "+31612345678",
+	tel_fax         => "+31612345678",
+	tel_work        => "+31612345678",
 #	tel_general     => "+31600000010",      # FAIL
-        company         => "Vrienden & co.",
-        url             => "http://maak.nieuwe.vrienden.nl",
-	);
+	company         => "Vrienden & co.",
+	url             => "http://maak.nieuwe.vrienden.nl",
+	};
+    if ($t_idx >= 0) {
+	DDumper { idx => $t_idx, pb => $pb[$t_idx] };
+	$c = { %{$pb[$t_idx][4]} };	# Make a copy
+	}
     my $cw = $mw->Toplevel;
     my $ef = $cw->Frame->pack (qw( -side top    -fill both -expand 1 ));
     my $bf = $cw->Frame->pack (qw( -side bottom -fill x    -expand 0 ));
@@ -273,31 +278,31 @@ sub add_contact
     my @la = (@ga, -font => $font{label}, -foreground => "Green4", -anchor => "w");
     my @ea = (@ga, -font => $font{entry}, -background => "White");
     my @gg = (-sticky => "news");
-    for (   [  0,  0, "Location",	\$c{location},			],
-	    [  0,  2, "Memory",		\$c{memorytype},		],
+    for (   [  0,  0, "Location",	\$c->{location},		],
+	    [  0,  2, "Memory",		\$c->{memorytype},		],
 
-	    [  1,  2, "Number",		\$c{number},			],
-	    [  2,  2, "Cell",		\$c{tel_cell},			],
-	    [  3,  2, "Home",		\$c{tel_home},			],
-	    [  4,  2, "Work",		\$c{tel_work},			],
-	    [  5,  2, "Fax",		\$c{tel_fax},			],
+	    [  1,  2, "Number",		\$c->{number},			],
+	    [  2,  2, "Cell",		\$c->{tel_cell},		],
+	    [  3,  2, "Home",		\$c->{tel_home},		],
+	    [  4,  2, "Work",		\$c->{tel_work},		],
+	    [  5,  2, "Fax",		\$c->{tel_fax},			],
 
-	    [  1,  0, "Name",		\$c{name},			],
-	    [  2,  0, " Family",	\$c{person}{family_name},	],
-	    [  3,  0, " Given",		\$c{person}{given_name},	],
-	    [  4,  0, " Nick",		\$c{nickname},			],
-	    [  5,  0, "Adress",		\$c{home_address},		],
-	    [  6,  0, " Street",	\$c{address}{street},		],
-	    [  7,  0, " City",		\$c{address}{city},		],
-	    [  8,  0, " Postal",	\$c{address}{postal},		],
+	    [  1,  0, "Name",		\$c->{name},			],
+	    [  2,  0, " Family",	\$c->{person}{family_name},	],
+	    [  3,  0, " Given",		\$c->{person}{given_name},	],
+	    [  4,  0, " Nick",		\$c->{nickname},		],
+	    [  5,  0, "Adress",		\$c->{home_address},		],
+	    [  6,  0, " Street",	\$c->{address}{street},		],
+	    [  7,  0, " City",		\$c->{address}{city},		],
+	    [  8,  0, " Postal",	\$c->{address}{postal},		],
 
-	    [  6,  2, "Company",	\$c{company},			],
-	    [  7,  2, "Birth",		\$c{birthday},			],
-	    [  8,  2, "Date",		\$c{date},			],
+	    [  6,  2, "Company",	\$c->{company},			],
+	    [  7,  2, "Birth",		\$c->{birthday},		],
+	    [  8,  2, "Date",		\$c->{date},			],
 
-	    [ 10,  0, "URL",		\$c{url},			],
-	    [ 10,  2, "e-mail",		\$c{e_mail},			],
-	    [ 11,  0, "Note",		\$c{note}, 3			],
+	    [ 10,  0, "URL",		\$c->{url},			],
+	    [ 10,  2, "e-mail",		\$c->{e_mail},			],
+	    [ 11,  0, "Note",		\$c->{note}, 3			],
 	    ) {
 	my ($row, $col, $label, $field, $cs) = (@$_, 1);
 	$eg->Label (-text         => $label, @la)->grid (-row => $row, -column => $col,     @gg);
@@ -335,9 +340,10 @@ sub add_contact
 		    }
 		return $n;
 		}; # cuh
-	    $cuh->(\%c);
+	    $cuh->($c);
+	    DDumper { Writing => $c };
 
-	    my $err = $gsm->WritePhonebookEntry (\%c);
+	    my $err = $gsm->WritePhonebookEntry ($c);
 	    if (defined $err and $err == 0) {
 		status "Phonebook updated", "#00a000";
 		get_pb ();
