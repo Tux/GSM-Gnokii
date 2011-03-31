@@ -230,6 +230,19 @@ sub send_msg
     $err;
     } # send_msg
 
+sub clear_hash
+{
+    my $h = shift;
+    foreach my $k (keys %$h) {
+	if (ref $h->{$k} eq "HASH") {
+	    clear_hash ($h->{$k});
+	    }
+	else {	# ignore other refs, they should not occur
+	    $h->{$k} = "";
+	    }
+	}
+    } # clear_hash
+
 sub add_contact
 {
     my $c = {
@@ -354,6 +367,14 @@ sub add_contact
 		status (($gsm->{ERROR} || "ERROR: ".DPeek $err), "#d00000");
 		}
 	    },
+	)->pack (qw( -side left -expand 0 -fill both -anchor w ));
+    $bf->Button (
+	-text		=> "Clear",
+	-command	=> sub { clear_hash ($c) },
+	)->pack (qw( -side left -expand 0 -fill both -anchor w ));
+    $bf->Button (
+	-text		=> "Cancel",
+	-command	=> sub { $cw->destroy; },
 	)->pack (qw( -side left -expand 0 -fill both -anchor w ));
     } # add_contact
 
