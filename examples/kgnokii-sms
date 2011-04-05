@@ -191,7 +191,7 @@ sub get_pb
 		    $name = join " " => $p->{given_name}, $p->{family_name};
 		}
 	    my $number = $_->{tel_cell} || $_->{number};
-	    [ $idx, $number, $name, undef, $_ ];
+	    [ $idx, $number, $name, "", $_ ];
 	    } @{$gsm->GetPhonebook ("ME", 1, 0) || []};
     {   my $maxlen = max map { length $_->[2] } @pb;
 	$_->[3] = sprintf "%3d: %-*s %s", $_->[0], $maxlen, $_->[2], $_->[1] for @pb;
