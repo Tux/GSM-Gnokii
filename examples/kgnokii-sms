@@ -43,7 +43,8 @@ $opt_v and print STDERR "Read phonebook ...\n";
 my @pb;
 get_pb ();
 
-my ($t_number, $t_name, $t_entry, $t_idx, $status) = ("number", "name", "", -1, "");
+my ($t_number, $t_name, $t_entry, $t_idx, $status) =
+    ("number", "name", "", -1, "");
 
 if ($msg =~ m/\S/ && @pb == 1) {
     $opt_v and print STDERR "Sending message ...\n";
@@ -107,7 +108,7 @@ my $f_btn = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -
     get_levels ();
     }
 
-@pb == 1 and ($t_number, $t_name, $t_idx) = ($pb[0][1], $pb[0][2], 0);
+@pb == 1 and ($t_idx, $t_number, $t_name, $t_entry) = (0, @{$pb[0]}[1,2,3]);
 $f_tgt->Label (
     -text		=> "To",
     -font		=> $font{text},
