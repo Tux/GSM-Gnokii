@@ -91,7 +91,7 @@ requires:
     Data::Peek:          0.32
     JSON:                0
 recommends:     
-    perl:                5.012003
+    perl:                5.014001
 configure_requires:
     ExtUtils::MakeMaker: 0
 test_requires:
