@@ -49,8 +49,8 @@ WriteMakefile (
 			-Wmissing-format-attribute -Wno-cast-qual -Wunused-value
 			-Wno-sign-compare -Wpointer-arith -Wreturn-type -Wshadow
 			-Wswitch-default -Wuninitialized -Wunreachable-code
-			-Wundef
-			)),
+			-Wundef -Wunused
+			)),	# add -Wunused-but-set-variable for gcc-4.6
 		     "#OPTIMIZE" => "-O2 \$(GCC_WALL)",
 		    },
     );
