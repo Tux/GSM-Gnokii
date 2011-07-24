@@ -118,7 +118,14 @@ sub GSM::Gnokii::get_file
     } # get_file
 
 {   my $f = $fi->Frame  ()->pack (qw( -side top -expand 1 -fill x    -anchor nw ));
-    my $t = $fi->ROText ()->pack (qw( -side top -expand 1 -fill both -anchor nw ));
+    my $t = $fi->Scrolled ("ROText",
+	-scrollbars	=> "oe",
+	    -height	=> 10,
+	    -width	=> 40,
+	    -setgrid	=> 1,
+	    )->pack (
+		qw( -side top -expand 1 -fill both -anchor nw )
+		)->Subwidget ("scrolled");
     my $i = $fi->Frame  ()->pack (qw( -side top -expand 1 -fill both -anchor nw ));
     $f->Button (
 	-text		=> "Save",
