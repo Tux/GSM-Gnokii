@@ -763,10 +763,24 @@ WritePhonebookEntry (self, pbh)
     */
 
     /* Add date subentries */
-    /* birthday, date */
+#define hv_getsubdt(key,type)\
+    if (entry.subentries_count < GN_PHONEBOOK_SUBENTRIES_MAX_NUMBER) {\
+	int dt;\
+	hv_geti (pbh, key, dt);\
+	entry.subentries[entry.subentries_count].data.date.timezone = 0;\
+	entry.subentries[entry.subentries_count].data.date.second   = 0;\
+	entry.subentries[entry.subentries_count].data.date.minute   = 0;\
+	entry.subentries[entry.subentries_count].data.date.hour     = 0;\
+	entry.subentries[entry.subentries_count].data.date.day      = dt % 100; dt /= 100;\
+	entry.subentries[entry.subentries_count].data.date.month    = dt % 100; dt /= 100;\
+	entry.subentries[entry.subentries_count].data.date.year	    = dt;\
+	entry.subentries[entry.subentries_count++].entry_type = type;\
+	}
+    hv_getsubdt ("birthday",	GN_PHONEBOOK_ENTRY_Birthday);
+    hv_getsubdt ("date",	GN_PHONEBOOK_ENTRY_Date);
 
     if (entry.subentries_count)
-	hv_getsubn ("number",    GN_PHONEBOOK_NUMBER_None);
+	hv_getsubn ("number",   GN_PHONEBOOK_NUMBER_None);
 
     gn_phonebook_entry_sanitize (&entry);
     if (opt_v > 5 ) {
