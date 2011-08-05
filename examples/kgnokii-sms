@@ -48,8 +48,8 @@ my ($t_number, $t_name, $t_entry, $t_idx, $status) =
 
 if ($msg =~ m/\S/ && @pb == 1) {
     $opt_v and print STDERR "Sending message ...\n";
-    $t_name = $pb[0][2];
-    my $err = send_msg ($pb[0][1], $msg);
+    $t_name = $pb[0]{name};
+    my $err = send_msg ($pb[0]{number}, $msg);
     print "$status\n";
     exit $err;
     }
@@ -108,7 +108,7 @@ my $f_btn = $mw->Frame->pack (-side =>"top", -anchor => "nw", -fill => "both", -
     get_levels ();
     }
 
-@pb == 1 and ($t_idx, $t_number, $t_name, $t_entry) = (0, @{$pb[0]}[1,2,3]);
+@pb == 1 and ($t_idx, $t_number, $t_name, $t_entry) = (0, @{$pb[0]}{qw( number name summ )});
 $f_tgt->Label (
     -text		=> "To",
     -font		=> $font{text},
@@ -131,7 +131,7 @@ my $be = $f_tgt->BrowseEntry (
     -variable		=> \$t_entry,
     -browse2cmd		=> sub {
 	$t_idx = $_[1];
-	($t_number, $t_name) = @{$pb[$t_idx]}[1, 2];
+	($t_number, $t_name) = @{$pb[$t_idx]}{qw( number name )};
 	printf STDERR "%3d: %-13s %-20.20s = %s\n", $t_idx, $t_number, $t_name, $t_entry;
 	},
     -relief		=> "sunken",
@@ -143,7 +143,7 @@ $f_tgt->Button (
     -command		=> \&add_contact,
     )->pack (-side => "left", -anchor => "e", -fill => "both", -expand => 0);
 
-$be->insert ("end", $_) for map { $_->[3] } @pb;
+$be->insert ("end", $_) for map { $_->{summ} } @pb;
 
 my $t = $f_msg->Text (
     -width		=> 80,
@@ -182,20 +182,28 @@ sub status
 sub get_pb
 {
     @pb =
-	sort { $a->[2] cmp $b->[2] }
-	grep { $to ? "@$_" =~ m/$to/i : 1 }
+	sort { $a->{name} cmp $b->{name} }
+	grep { $to ? "@{[values %$_]}" =~ m/$to/i : 1 }
 	map  {
 	    my $idx  = $_->{location};
 	    my $name = $_->{name};
+	    my $nick = $_->{nickname} || $name;
 	    if (my $p = $_->{person}) {
 		$p->{family_name} && $p->{given_name} and
 		    $name = join " " => $p->{given_name}, $p->{family_name};
 		}
 	    my $number = $_->{tel_cell} || $_->{number};
-	    [ $idx, $number, $name, "", $_ ];
+	    {	idx	=> $idx,
+		number	=> $number,
+		name	=> $name,
+		nick	=> $nick,
+		summ	=> "",
+		entry	=> $_,
+		};
+	    #[ $idx, $number, $name, "", $_ ];
 	    } @{$gsm->GetPhonebook ("ME", 1, 0) || []};
-    {   my $maxlen = max map { length $_->[2] } @pb;
-	$_->[3] = sprintf "%3d: %-*s %s", $_->[0], $maxlen, $_->[2], $_->[1] for @pb;
+    {   my $maxlen = max map { length $_->{name} } @pb;
+	$_->{summ} = sprintf "%3d: %-*s %s", $_->{idx}, $maxlen, $_->{name}, $_->{number} for @pb;
 	}
     } # get_pb
 
@@ -280,7 +288,7 @@ sub add_contact
 	};
     if ($t_idx >= 0) {
 	DDumper { idx => $t_idx, pb => $pb[$t_idx] };
-	$c = { %{$pb[$t_idx][4]} };	# Make a copy
+	$c = { %{$pb[$t_idx]{entry}} };	# Make a copy
 	}
     my $cw = $mw->Toplevel;
     my $ef = $cw->Frame->pack (qw( -side top    -fill both -expand 1 ));
@@ -362,7 +370,7 @@ sub add_contact
 		status "Phonebook updated", "#00a000";
 		get_pb ();
 		$be->delete (0, "end");
-		$be->insert ("end", $_) for map { $_->[3] } @pb;
+		$be->insert ("end", $_) for map { $_->{summ} } @pb;
 		}
 	    else {
 		status (($gsm->{ERROR} || "ERROR: ".DPeek $err), "#d00000");
