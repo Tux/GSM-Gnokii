@@ -67,7 +67,8 @@ static int _hv_geti (HV *hash, const char *key, int *i)
     *i = 0;
     unless (value = hv_fetch (hash, key, strlen (key), 0))
 	return (0);
-    unless (SvIOK (*value) || SvIOKp (*value))
+    if (opt_v > 8) sv_dump (*value);
+    unless (SvOK (*value) || SvPOK (*value))
 	return (0);
     *i = SvIV (*value);
     if (opt_v > 5) warn ("hv_geti (%s) = %d\n", key, *i);
@@ -767,14 +768,16 @@ WritePhonebookEntry (self, pbh)
     if (entry.subentries_count < GN_PHONEBOOK_SUBENTRIES_MAX_NUMBER) {\
 	int dt;\
 	hv_geti (pbh, key, dt);\
-	entry.subentries[entry.subentries_count].data.date.timezone = 0;\
-	entry.subentries[entry.subentries_count].data.date.second   = 0;\
-	entry.subentries[entry.subentries_count].data.date.minute   = 0;\
-	entry.subentries[entry.subentries_count].data.date.hour     = 0;\
-	entry.subentries[entry.subentries_count].data.date.day      = dt % 100; dt /= 100;\
-	entry.subentries[entry.subentries_count].data.date.month    = dt % 100; dt /= 100;\
-	entry.subentries[entry.subentries_count].data.date.year	    = dt;\
-	entry.subentries[entry.subentries_count++].entry_type = type;\
+	if (dt) {\
+	    entry.subentries[entry.subentries_count].data.date.timezone = 0;\
+	    entry.subentries[entry.subentries_count].data.date.second   = 0;\
+	    entry.subentries[entry.subentries_count].data.date.minute   = 0;\
+	    entry.subentries[entry.subentries_count].data.date.hour     = 0;\
+	    entry.subentries[entry.subentries_count].data.date.day      = dt % 100; dt /= 100;\
+	    entry.subentries[entry.subentries_count].data.date.month    = dt % 100; dt /= 100;\
+	    entry.subentries[entry.subentries_count].data.date.year	= dt;\
+	    entry.subentries[entry.subentries_count++].entry_type = type;\
+	    }\
 	}
     hv_getsubdt ("birthday",	GN_PHONEBOOK_ENTRY_Birthday);
     hv_getsubdt ("date",	GN_PHONEBOOK_ENTRY_Date);
