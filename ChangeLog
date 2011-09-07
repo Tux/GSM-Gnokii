@@ -1,5 +1,6 @@
-0.06  31-03-2011
+0.06  07-09-2011
     - Add [Clear] and [Cancel] to AddressBook  maint window
+    - Spellchecking
 
 0.05  25-03-2011
     - Fixed WriteWAPSetting, ActivateWapSetting, WriteWapBookmark,
