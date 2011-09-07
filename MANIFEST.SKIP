@@ -5,6 +5,7 @@
 blib/
 cover_db/
 sandbox/
+log
 Makefile
 MANIFEST.SKIP
 META.json

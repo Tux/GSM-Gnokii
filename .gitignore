@@ -1,6 +1,7 @@
 .env
 blib
 cover_db
+log
 Makefile
 META.json
 META.yml
@@ -24,5 +25,8 @@ valgrind.log
 pod2htm*
 nytprof*
 tmp/*
-sandbox/cover_db*
 sandbox/3109c*
+sandbox/cover_db*
+sandbox/dirtree*
+sandbox/gj.pl
+sandbox/Wammu-*
