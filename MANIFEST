@@ -14,4 +14,4 @@ t/10_all.t
 xt/00_perlversion.t
 examples/backup
 examples/dirtree
-examples/kgnokii
+examples/kgnokii-sms
