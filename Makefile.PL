@@ -25,7 +25,8 @@ else {
     }
 
 WriteMakefile (
-    NAME         => "GSM-Gnokii",
+    NAME         => "GSM::Gnokii",
+    DISTNAME     => "GSM-Gnokii",
     ABSTRACT     => "API to libgnokii",
     AUTHOR       => "H.Merijn Brand <h.merijn\@xs4all.nl>",
     LICENSE      => "perl",
