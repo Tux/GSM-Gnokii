@@ -11,69 +11,31 @@ GetOptions (
     "v|verbose:1"	=> \$opt_v,
     ) or die "usage: $0 [--check]\n";
 
-my $version;
-open my $pm, "<", "Gnokii.pm" or die "Cannot read Gnokii.pm";
-while (<$pm>) {
-    m/^our\s*.VERSION\s*=\s*"?([-0-9._]+)"?\s*;\s*$/ or next;
-    $version = $1;
-    last;
-    }
-close $pm;
+use lib "sandbox";
+use genMETA;
+my $meta = genMETA->new (
+    from    => "lib/GSM/Gnokii.pm",
+    verbose => $opt_v,
+    );
 
-my @yml;
-while (<DATA>) {
-    s/VERSION/$version/o;
-    push @yml, $_;
-    }
+$meta->from_data (<DATA>);
 
 if ($check) {
-    print STDERR "Check required and recommended module versions ...\n";
-    BEGIN { $V::NO_EXIT = $V::NO_EXIT = 1 } require V;
-    my %vsn = map { m/^\s*([\w:]+):\s+([0-9.]+)$/ ? ($1, $2) : () } @yml;
-    delete @vsn{qw( perl version )};
-    for (sort keys %vsn) {
-	$vsn{$_} eq "0" and next;
-	my $v = V::get_version ($_);
-	$v eq $vsn{$_} and next;
-	printf STDERR "%-35s %-6s => %s\n", $_, $vsn{$_}, $v;
-	}
-
-    print STDERR "Checking generated YAML ...\n";
-    use YAML::Syck;
-    use Test::YAML::Meta::Version;
-    my $h;
-    my $yml = join "", @yml;
-    eval { $h = Load ($yml) };
-    $@ and die "$@\n";
-    $opt_v and print Dump $h;
-    my $t = Test::YAML::Meta::Version->new (yaml => $h);
-    $t->parse () and die join "\n", $t->errors, "";
-
-    use Parse::CPAN::Meta;
-    eval { Parse::CPAN::Meta::Load ($yml) };
-    $@ and die "$@\n";
-
-    my $req_vsn = $h->{requires}{perl};
-    print "Checking if $req_vsn is still OK as minimal version for examples\n";
-    use Test::MinimumVersion;
-    # All other minimum version checks done in xt
-    all_minimum_version_ok ($req_vsn, { paths =>
-	[ "t", "examples", "Gnokii.pm", "Makefile.PL" ]});
+    $meta->check_encoding ();
+    $meta->check_required ();
+    $meta->check_minimum ([ "t", "Gnokii.pm", "Makefile.PL" ]);
+    $meta->check_minimum ("5.010", [ "examples" ]);
     }
 elsif ($opt_v) {
-    print @yml;
+    $meta->print_yaml ();
     }
 else {
-    my @my = glob <*/META.yml>;
-    @my == 1 && open my $my, ">", $my[0] or die "Cannot update META.yml\n";
-    print $my @yml;
-    close $my;
-    chmod 0644, glob <*/META.yml>;
+    $meta->fix_meta ();
     }
 
 __END__
 --- #YAML:1.0
-name:                    GSM::Gnokii
+name:                    GSM-Gnokii
 version:                 VERSION
 abstract:                Perl API to libgnokii
 license:                 perl
@@ -88,18 +50,22 @@ provides:
 requires:     
     perl:                5.008004
     Carp:                0
+    DynaLoader:          0
     Data::Peek:          0.32
     JSON:                0
 recommends:     
     perl:                5.014001
+    Data::Peek:          0.34
 configure_requires:
     ExtUtils::MakeMaker: 0
+build_requires:
+    Config:              0
 test_requires:
     Test::Harness:       0
     Test::More:          0.88
     Test::NoWarnings:    0
 test_recommends:
-    Test::More:          0.96
+    Test::More:          0.98
 resources:
     license:             http://dev.perl.org/licenses/
     repository:          http://repo.or.cz/w/GSM-Gnokii.git
