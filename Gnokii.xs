@@ -1751,7 +1751,6 @@ GetFile (self, path)
     snprintf (fi.name, sizeof (fi.name), "%s", path);
 
     data->file = &fi;
-    data->progress_indication = NULL;
     unless (gn_sm_func (self, GN_OP_GetFile)) {
 	set_errors ("GetFile () failed to get file");
 	XSRETURN_UNDEF;
