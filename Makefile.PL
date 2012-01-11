@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (c) 2011-2011 H.Merijn Brand
+# Copyright (c) 2011-2012 H.Merijn Brand
 
 require 5.008004;
 use strict;

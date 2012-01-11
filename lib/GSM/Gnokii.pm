@@ -731,6 +731,13 @@ H.Merijn Brand
 Author of GSMD::Gnokii is Konstantin Agouros. gnokii@agouros.de
 His code served as a huge inspiration to create this module.
 
+=head1 COPYRIGHT AND LICENSE
+
+ Copyright (C) 2011-2012 H.Merijn Brand. All rights reserved.
+
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
 =head1 SEE ALSO
 
 gnokii(1), GSMI, GSMD::Gnokii
