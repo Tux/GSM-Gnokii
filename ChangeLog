@@ -3,6 +3,7 @@
     * upped copyrigth to 2012
     * Add ping
     * Fixed YAML metadata
+    * Tested against libgnokii-7.0.0 (still works with 6.1.0)
 
 0.07	- 07-09-2011, H.Merijn Brand
     * NAME / DISTNAME in Makefile.PL
