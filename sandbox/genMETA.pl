@@ -45,7 +45,7 @@ generated_by:            Author
 distribution_type:       module
 provides:
     GSM::Gnokii:
-        file:            Gnokii.pm
+        file:            lib/GSM/Gnokii.pm
         version:         VERSION
 requires:     
     perl:                5.008004
