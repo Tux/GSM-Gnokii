@@ -368,6 +368,11 @@ Returns a reference to a hash with the display status, all boolean, like:
   keyboard_lock    => 0,
   sms_storage_full => 0,
 
+=head2 Ping
+
+Returns availability of the phone or undef if Ping is unimplemented in
+libgnokii.
+
 =head2 GetIMEI
 
 Returns a reference to a hash with the IMEI data, like:

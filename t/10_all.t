@@ -12,6 +12,7 @@ use GSM::Gnokii;
 my $gsm  = GSM::Gnokii->new ({ verbose => 1 })->connect ();
 
 ok (my $get = {
+    Ping	=> $gsm->Ping (),
     IMEI	=> $gsm->GetIMEI (),
     DateTime	=> $gsm->GetDateTime (),
     Security	=> $gsm->GetSecurity (),
