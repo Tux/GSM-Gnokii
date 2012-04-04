@@ -39,7 +39,7 @@ ok (my $get = {
     Versions	=> {
 	version	=> $gsm->version (),
 	VERSION	=> $GSM::Gnokii::VERSION,
-	module	=> $gsm->{gsm_gnokii_version},
+	object	=> $gsm->{gsm_gnokii_version},
 	gnokii	=> $gsm->{libgnokii_version},
 	},
     }, "Execute Get methods");

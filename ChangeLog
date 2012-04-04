@@ -1,6 +1,9 @@
+0.09	- 04-04-2012, H.Merijn Brand
+    * 
+
 0.08	- 04-04-2012, H.Merijn Brand
     * gn_data has no member named progress_indication anymore
-    * upped copyrigth to 2012
+    * upped copyright to 2012
     * Add ping
     * Fixed YAML metadata
     * Tested against libgnokii-7.0.0 (still works with 6.1.0)
