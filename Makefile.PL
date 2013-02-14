@@ -53,7 +53,8 @@ WriteMakefile (
 			-Wundef -Wunused
 			)),	# add -Wunused-but-set-variable for gcc-4.6
 		     "#OPTIMIZE" => "-O2 \$(GCC_WALL)",
-		    },
+		      TARFLAGS => "--format=ustar -c -v -f",
+		      },
     );
 
 1;
