@@ -408,6 +408,7 @@ disconnect (self)
    * WritePhonebook ({ ... })
    * GetSpeedDial (location)
    * SetSpeedDial (memtype, location, number)
+   * DeletePhonebook (); -- TODO
    *
    * ###########################################################################
    */
