@@ -55,7 +55,7 @@ requires:
     JSON:                0
 recommends:     
     perl:                5.016003
-    Data::Peek:          0.38
+    Data::Peek:          0.39
 configure_requires:
     ExtUtils::MakeMaker: 0
 build_requires:
