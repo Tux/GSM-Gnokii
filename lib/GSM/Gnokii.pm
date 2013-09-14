@@ -142,7 +142,7 @@ it is very likely that C<< $gsm->{ERROR} >> contains an explanation.
 
 All is well: operation completed successfully.
 
-=item *Z<>
+=item I<#>
 
 Any other value is either the return code from the call was performed,
 in which case the value of C<< $gsm->{ERROR} >> should have been set to tell
