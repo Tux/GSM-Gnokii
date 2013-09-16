@@ -92,6 +92,11 @@ GSM::Gnokii - Perl extension libgnokii
 
 GSM::Gnokii is a driver module to interface Perl with libgnokii.
 
+ At the moment there is no active development, as the author is not able
+ to connect the old phone to the new laptop anymore. 
+ This module has been requested to transfer maint to the libgnokii
+ development team.
+
 =head1 MEMORYTYPES
 
 The supported memory types are the ones that gnokii supports on the
