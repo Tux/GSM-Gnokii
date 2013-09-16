@@ -9,8 +9,16 @@ use Data::Peek;
 use List::Util qw( first );
 use GSM::Gnokii;
 
-my $gsm  = GSM::Gnokii->new ({ verbose => 1 })->connect ();
+ok (my $gsm  = GSM::Gnokii->new ({ verbose => 1 }), "New");
 
+ok   (my $vsn = $gsm->version (),	"Module version");
+diag ("GSM::Gnokii-$vsn");
+is   ($GSM::Gnokii::VERSION,      $vsn,	"Gnokii VERSION");
+is   ($gsm->{gsm_gnokii_version}, $vsn,	"gsm_gnokii version");
+ok   ($gsm->{libgnokii_version},	"libgnokii  version");
+diag ("libgnokii-".$gsm->{libgnokii_version});
+
+ok ($gsm = $gsm->connect (), "connect");
 ok (my $get = {
     Ping	=> $gsm->Ping (),
     IMEI	=> $gsm->GetIMEI (),
@@ -35,13 +43,6 @@ ok (my $get = {
     CalNotes	=> $gsm->GetCalendarNotes (1, 3),
     Todo	=> $gsm->GetTodo (1, 3),
 #   WAPSettings	=> $gsm->GetWapSettings (2),
-
-    Versions	=> {
-	version	=> $gsm->version (),
-	VERSION	=> $GSM::Gnokii::VERSION,
-	object	=> $gsm->{gsm_gnokii_version},
-	gnokii	=> $gsm->{libgnokii_version},
-	},
     }, "Execute Get methods");
 
 DDumper $get;
