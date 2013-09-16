@@ -1,5 +1,5 @@
-0.09	- 2012-04-04, H.Merijn Brand
-    * 
+0.09	- 2012-09-16, H.Merijn Brand
+    * POD change to satisfy modern pod-checkers
 
 0.08	- 2012-04-04, H.Merijn Brand
     * gn_data has no member named progress_indication anymore
