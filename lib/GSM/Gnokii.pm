@@ -738,7 +738,7 @@ His code served as a huge inspiration to create this module.
 
 =head1 COPYRIGHT AND LICENSE
 
- Copyright (C) 2011-2012 H.Merijn Brand. All rights reserved.
+ Copyright (C) 2011-2013 H.Merijn Brand. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
