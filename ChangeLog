@@ -1,4 +1,7 @@
-0.09	- 2012-09-16, H.Merijn Brand
+0.10	- 2013-09-18, Daniele Forsi
+    * Took over from H.Merijn: new repo url's
+
+0.09	- 2013-09-16, H.Merijn Brand
     * POD change to satisfy modern pod-checkers
     * This module will be handed over to the libgnokii development team
     * Upped copyright to 2013

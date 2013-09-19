@@ -18,7 +18,9 @@ my $meta = genMETA->new (
     verbose => $opt_v,
     );
 
-$meta->from_data (<DATA>);
+{   open my $mh, "<", "META.yml" or die "META.yml: $!\n";
+    $meta->from_data (do { local $/; <$mh> });
+    }
 
 if ($check) {
     $meta->check_encoding ();
@@ -32,43 +34,3 @@ elsif ($opt_v) {
 else {
     $meta->fix_meta ();
     }
-
-__END__
---- #YAML:1.0
-name:                    GSM-Gnokii
-version:                 VERSION
-abstract:                Perl API to libgnokii
-license:                 perl
-author:              
-    - H.Merijn Brand <h.m.brand@xs4all.nl>
-generated_by:            Author
-distribution_type:       module
-provides:
-    GSM::Gnokii:
-        file:            lib/GSM/Gnokii.pm
-        version:         VERSION
-requires:     
-    perl:                5.008004
-    Carp:                0
-    DynaLoader:          0
-    Data::Peek:          0.32
-    JSON:                0
-recommends:     
-    perl:                5.016003
-    Data::Peek:          0.39
-configure_requires:
-    ExtUtils::MakeMaker: 0
-build_requires:
-    Config:              0
-test_requires:
-    Test::Harness:       0
-    Test::More:          0.88
-    Test::NoWarnings:    0
-test_recommends:
-    Test::More:          0.98
-resources:
-    license:             http://dev.perl.org/licenses/
-    repository:          http://repo.or.cz/w/GSM-Gnokii.git
-meta-spec:
-    version:             1.4
-    url:                 http://module-build.sourceforge.net/META-spec-v1.4.html

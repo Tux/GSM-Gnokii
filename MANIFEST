@@ -1,6 +1,7 @@
 ChangeLog
 README
 MANIFEST
+META.yml
 Makefile.PL
 lib/GSM/Gnokii.pm
 lib/GSM/Gnokii/Tk/GSMTree.pm

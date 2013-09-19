@@ -25,23 +25,24 @@ else {
     }
 
 WriteMakefile (
-    NAME         => "GSM::Gnokii",
-    DISTNAME     => "GSM-Gnokii",
-    ABSTRACT     => "API to libgnokii",
-    AUTHOR       => "H.Merijn Brand <h.merijn\@xs4all.nl>",
-    LICENSE      => "perl",
-    VERSION_FROM => "lib/GSM/Gnokii.pm",
-    PREREQ_PM    => {	"DynaLoader"    => 0,
+    NAME             => "GSM::Gnokii",
+    DISTNAME         => "GSM-Gnokii",
+    ABSTRACT         => "API to libgnokii",
+    AUTHOR           => "H.Merijn Brand <h.merijn\@xs4all.nl>",
+    LICENSE          => "perl",
+    MIN_PERL_VERSION => "5.008004",
+    VERSION_FROM     => "lib/GSM/Gnokii.pm",
+    PREREQ_PM        => {	"DynaLoader"    => 0,
 			"Config"        => 0,
 			"Test::More"    => 0,
 			"Test::Harness" => 0,
 			"Data::Peek"	=> 0.32,
 			"JSON"		=> 0,
 			},
-    LIBS         => [ "$gnokii_lib -lgnokii" ],
-    TYPEMAPS     => [ "perlobject.map" ],
-    DEFINE       => "",
-    INC          => $gnokii_inc,
+    LIBS             => [ "$gnokii_lib -lgnokii" ],
+    TYPEMAPS         => [ "perlobject.map" ],
+    DEFINE           => "",
+    INC              => $gnokii_inc,
 
     macro        => { GCC_WALL => (join " " => qw(
 			-Wall -Wextra -Wbad-function-cast -Wcomment -Wcomments
