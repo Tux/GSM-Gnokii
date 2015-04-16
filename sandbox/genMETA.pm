@@ -11,9 +11,9 @@ use Carp;
 use List::Util qw( first );
 use Encode qw( encode decode );
 use Term::ANSIColor qw(:constants);
+use Date::Calc qw( Delta_Days );
 use Test::CPAN::Meta::YAML::Version;
 use CPAN::Meta::Converter;
-use Test::MinimumVersion;
 use Test::More ();
 use Parse::CPAN::Meta;
 use File::Find;
@@ -246,12 +246,54 @@ sub check_minimum
     my $paths = (join ", " => @{($locs // {})->{paths} // []}) || "default paths";
 
     $reqv or croak "No minimal required version for perl";
+    if ($reqv > 5.006) {
+	eval "use Test::MinimumVersion::Fast;";
+	}
+    else {
+	eval "use Test::MinimumVersion;";
+	}
     print "Checking if $reqv is still OK as minimal version for $paths\n";
     # All other minimum version checks done in xt
     Test::More::subtest "Minimum perl version $reqv" => sub {
 	all_minimum_version_ok ($reqv, $locs);
 	} or warn RED, "\n### Use 'perlver --blame' on the failing file(s)\n\n", RESET;
     } # check_minimum
+
+sub check_changelog
+{
+    # Check if the first date has been updated ...
+    my @td = grep m/^Change(?:s|Log)$/i => glob "[Cc]*";
+    unless (@td) {
+	warn "No ChangeLog to check\n";
+	return;
+	}
+    my %mnt = qw( jan 1 feb 2 mar 3 apr 4 may 5 jun 6 jul 7 aug 8 sep 9 oct 10 nov 11 dec 11 );
+    open my $fh, "<", $td[0] or die "$td[0]: $!\n";
+    while (<$fh>) {
+	s/\b([0-9]{4}) (?:[- ])
+	    ([0-9]{1,2}) (?:[- ])
+	    ([0-9]{1,2})\b/$3-$2-$1/x; # 2015-01-15 => 15-01-2015
+	m/\b([0-9]{1,2}) (?:[- ])
+	    ([0-9]{1,2}|[ADFJMNOSadfjmnos][acekopu][abcgilnprtv]) (?:[- ])
+	    ([0-9]{4})\b/x or next;
+	my ($d, $m, $y) = ($1 + 0, ($mnt{lc $2} || $2) + 0, $3 + 0);
+	printf STDERR "Most recent ChangeLog entry is dated %02d-%02d-%04d\n", $d, $m, $y;
+	unless ($ENV{SKIP_CHANGELOG_DATE}) {
+	    my @t = localtime;
+	    my $D = Delta_Days ($y, $m , $d, $t[5] + 1900, $t[4] + 1, $t[3]);
+	    $D < 0 and die  RED,    "Last entry in $td[0] is in the future!",               RESET, "\n";
+	    $D > 2 and die  RED,    "Last entry in $td[0] is not up to date ($D days ago)", RESET, "\n";
+	    $D > 0 and warn YELLOW, "Last entry in $td[0] is not today",                    RESET, "\n";
+	    }
+	last;
+	}
+    } # check_changelog
+
+sub done_testing
+{
+    check_changelog ();
+    Test::More::done_testing ();
+    } # done_testing
 
 sub print_yaml
 {
@@ -263,7 +305,110 @@ sub fix_meta
 {
     my $self = shift;
 
-    # Do not change anything here anymore
+    # Convert to meta-spec version 2
+    # licenses are lists now
+    my $jsn = $self->{h};
+    $jsn->{"meta-spec"} = {
+	version	=> "2",
+	url	=> "https://metacpan.org/module/CPAN::Meta::Spec?#meta-spec",
+	};
+    exists $jsn->{resources}{license} and
+	$jsn->{resources}{license} = [ $jsn->{resources}{license} ];
+    delete $jsn->{distribution_type};
+    if (exists $jsn->{license}) {
+	$jsn->{license} =~ s/^perl$/perl_5/;
+	$jsn->{license} = [ $jsn->{license} ];
+	}
+    if (exists $jsn->{resources}{repository}) {
+	my $url = $jsn->{resources}{repository};
+	my $web = $url;
+	$url =~ s{repo.or.cz/w/}{repo.or.cz/r/};
+	$web =~ s{repo.or.cz/r/}{repo.or.cz/w/};
+	$jsn->{resources}{repository} = {
+	    type => "git",
+	    web  => $web,
+	    url  => $url,
+	    };
+	}
+    foreach my $sct ("", "configure_", "build_", "test_") {
+	(my $x = $sct || "runtime") =~ s/_$//;
+	for (qw( requires recommends suggests )) {
+	    exists $jsn->{"$sct$_"} and
+		$jsn->{prereqs}{$x}{$_} = delete $jsn->{"$sct$_"};
+	    }
+	}
+
+    # optional features do not yet know about requires and/or recommends diirectly
+    if (my $of = $jsn->{optional_features}) {
+	foreach my $f (keys %$of) {
+	    if (my $r = delete $of->{$f}{requires}) {
+		#$jsn->{prereqs}{runtime}{recommends}{$_} //= $r->{$_} for keys %$r;
+		$of->{$f}{prereqs}{runtime}{requires} = $r;
+		}
+	    if (my $r = delete $of->{$f}{recommends}) {
+		#$jsn->{prereqs}{runtime}{recommends}{$_} //= $r->{$_} for keys %$r;
+		$of->{$f}{prereqs}{runtime}{recommends} = $r;
+		}
+	    }
+	}
+
+    $jsn = CPAN::Meta::Converter->new ($jsn)->convert (version => "2");
+    $jsn->{generated_by} = "Author";
+
+    my @my = glob <*/META.yml> or croak "No META files";
+    my $yf = $my[0];
+    (my $jf = $yf) =~ s/yml$/json/;
+    open my $jh, ">", $jf or croak "Cannot update $jf\n";
+    print   $jh JSON::PP->new->utf8 (1)->pretty (1)->encode ($jsn);
+    close   $jh;
+
+    # Now that 2.0 JSON is corrrect, create a 1.4 YAML back from the modified stuff
+    my $yml = $jsn;
+    # 1.4 does not know about test_*, move them to *
+    if (my $tp = delete $yml->{prereqs}{test}) {
+	foreach my $phase (keys %{$tp}) {
+	    my $p = $tp->{$phase};
+	    #DDumper { $phase => $p };
+	    $yml->{prereqs}{runtime}{$phase}{$_} //= $p->{$_} for keys %{$p};
+	    }
+	}
+
+    # Optional features in 1.4 knows requires, but not recommends.
+    # The Lancaster Consensus moves 2.0 optional recommends promote to
+    # requires in 1.4
+    if (my $of = $yml->{optional_features}) {
+	foreach my $f (keys %$of) {
+	    if (my $r = delete $of->{$f}{prereqs}{runtime}{recommends}) {
+		$of->{$f}{requires} = $r;
+		}
+	    }
+	}
+    # runtime and test_requires are unknown as top-level in 1.4
+    foreach my $phase (qw( xuntime test_requires )) {
+	if (my $p = delete $yml->{$phase}) {
+	    foreach my $f (keys %$p) {
+		$yml->{$f}{$_} ||= $p->{$f}{$_} for keys %{$p->{$f}};
+		}
+	    }
+	}
+
+    #DDumper $yml;
+    # This does NOT create a correct YAML id the source does not comply!
+    $yml = CPAN::Meta::Converter->new ($yml)->convert (version => "1.4");
+    $yml->{requires}{perl} //= $jsn->{prereqs}{runtime}{requires}{perl}
+			   //  $self->{h}{requires}{perl}
+			   //  "";
+    $yml->{build_requires} && !keys %{$yml->{build_requires}} and
+	delete $yml->{build_requires};
+    #DDumper $yml;
+    #exit;
+
+    @my == 1 && open my $my, ">", $yf or croak "Cannot update $yf\n";
+    print $my Dump $yml; # @{$self->{yml}};
+    close $my;
+
+    chmod 0644, glob "*/META.*";
+    unlink glob "MYMETA*";
     } # fix_meta
 
 1;
