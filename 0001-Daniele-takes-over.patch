@@ -1,0 +1,389 @@
+From 496a0b7d370516633b908a122c3c7950fc48cfc5 Mon Sep 17 00:00:00 2001
+From: "H.Merijn Brand - Tux" <h.m.brand@xs4all.nl>
+Date: Thu, 19 Sep 2013 13:22:16 +0200
+Subject: [PATCH] Daniele takes over
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="------------1.8.4"
+
+This is a multi-part message in MIME format.
+--------------1.8.4
+Content-Type: text/plain; charset=UTF-8; format=fixed
+Content-Transfer-Encoding: 8bit
+
+---
+ .aspell.local.pws  |   4 +-
+ .gitignore         |   1 -
+ ChangeLog          |   5 ++-
+ MANIFEST           |   1 +
+ META.yml           |  36 ++++++++++++++++++
+ Makefile.PL        |  23 ++++++------
+ README             |   7 ++--
+ lib/GSM/Gnokii.pm  |   2 +-
+ sandbox/genMETA.pl |  44 ++--------------------
+ sandbox/genMETA.pm | 105 +----------------------------------------------------
+ 10 files changed, 65 insertions(+), 163 deletions(-)
+ create mode 100644 META.yml
+
+
+--------------1.8.4
+Content-Type: text/x-patch; name="0001-Daniele-takes-over.patch"
+Content-Transfer-Encoding: 8bit
+Content-Disposition: attachment; filename="0001-Daniele-takes-over.patch"
+
+diff --git a/.aspell.local.pws b/.aspell.local.pws
+index c29cec2..d890b07 100644
+--- a/.aspell.local.pws
++++ b/.aspell.local.pws
+@@ -1,9 +1,11 @@
+-personal_ws-1.1 en 66
++personal_ws-1.1 en 68
+ ActivateWapSetting
+ addressbook
+ Agouros
+ API
+ CreateSMSFolder
++Forsi
++Daniele
+ DeleteAllTodos
+ DeleteSMS
+ DeleteSMSFolder
+diff --git a/.gitignore b/.gitignore
+index 45fa641..190a8d0 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -4,7 +4,6 @@ cover_db
+ log
+ Makefile
+ META.json
+-META.yml
+ MYMETA.json
+ MYMETA.yml
+ pm_to_blib
+diff --git a/ChangeLog b/ChangeLog
+index 3c3006b..a0deca8 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -1,4 +1,7 @@
+-0.09	- 2012-09-16, H.Merijn Brand
++0.10	- 2013-09-18, Daniele Forsi
++    * Took over from H.Merijn: new repo url's
++
++0.09	- 2013-09-16, H.Merijn Brand
+     * POD change to satisfy modern pod-checkers
+     * This module will be handed over to the libgnokii development team
+     * Upped copyright to 2013
+diff --git a/MANIFEST b/MANIFEST
+index 51d6a25..470f204 100644
+--- a/MANIFEST
++++ b/MANIFEST
+@@ -1,6 +1,7 @@
+ ChangeLog
+ README
+ MANIFEST
++META.yml
+ Makefile.PL
+ lib/GSM/Gnokii.pm
+ lib/GSM/Gnokii/Tk/GSMTree.pm
+diff --git a/META.yml b/META.yml
+new file mode 100644
+index 0000000..77a7dfc
+--- /dev/null
++++ b/META.yml
+@@ -0,0 +1,36 @@
++--- 
++abstract: Perl API to libgnokii
++author: 
++  - Daniele Forsi <daniele@forsi.it>
++build_requires: 
++  Config: 0
++configure_requires: 
++  ExtUtils::MakeMaker: 0
++dynamic_config: 1
++generated_by: Author, CPAN::Meta::Converter version 2.132510
++license: perl
++meta-spec: 
++  url: http://module-build.sourceforge.net/META-spec-v1.4.html
++  version: '1.4'
++name: GSM-Gnokii
++provides: 
++  GSM::Gnokii: 
++    file: lib/GSM/Gnokii.pm
++    version: '0.10'
++recommends: 
++  Data::Peek: '0.39'
++  Test::More: '0.98'
++  perl: '5.016003'
++requires: 
++  Carp: 0
++  Data::Peek: '0.32'
++  DynaLoader: 0
++  JSON: 0
++  Test::Harness: 0
++  Test::More: '0.88'
++  Test::NoWarnings: 0
++  perl: '5.008004'
++resources: 
++  license: http://dev.perl.org/licenses/
++  repository: http://git.savannah.gnu.org/gitweb/?p=gnokii.git
++version: '0.10'
+diff --git a/Makefile.PL b/Makefile.PL
+index 43c378d..ced3a58 100644
+--- a/Makefile.PL
++++ b/Makefile.PL
+@@ -25,23 +25,24 @@ else {
+     }
+ 
+ WriteMakefile (
+-    NAME         => "GSM::Gnokii",
+-    DISTNAME     => "GSM-Gnokii",
+-    ABSTRACT     => "API to libgnokii",
+-    AUTHOR       => "H.Merijn Brand <h.merijn\@xs4all.nl>",
+-    LICENSE      => "perl",
+-    VERSION_FROM => "lib/GSM/Gnokii.pm",
+-    PREREQ_PM    => {	"DynaLoader"    => 0,
++    NAME             => "GSM::Gnokii",
++    DISTNAME         => "GSM-Gnokii",
++    ABSTRACT         => "API to libgnokii",
++    AUTHOR           => "H.Merijn Brand <h.merijn\@xs4all.nl>",
++    LICENSE          => "perl",
++    MIN_PERL_VERSION => "5.008004",
++    VERSION_FROM     => "lib/GSM/Gnokii.pm",
++    PREREQ_PM        => {	"DynaLoader"    => 0,
+ 			"Config"        => 0,
+ 			"Test::More"    => 0,
+ 			"Test::Harness" => 0,
+ 			"Data::Peek"	=> 0.32,
+ 			"JSON"		=> 0,
+ 			},
+-    LIBS         => [ "$gnokii_lib -lgnokii" ],
+-    TYPEMAPS     => [ "perlobject.map" ],
+-    DEFINE       => "",
+-    INC          => $gnokii_inc,
++    LIBS             => [ "$gnokii_lib -lgnokii" ],
++    TYPEMAPS         => [ "perlobject.map" ],
++    DEFINE           => "",
++    INC              => $gnokii_inc,
+ 
+     macro        => { GCC_WALL => (join " " => qw(
+ 			-Wall -Wextra -Wbad-function-cast -Wcomment -Wcomments
+diff --git a/README b/README
+index f84116c..162ccca 100644
+--- a/README
++++ b/README
+@@ -9,20 +9,21 @@ DESCRIPTION
+ 
+ COPYING:
+     Copyright (c) 2011-2013 H.Merijn Brand.  All rights reserved.
++    Copyright (c) 2013-     Daniela Forsi.   All rights reserved.
+ 
+     This program is free software; you can redistribute it and/or
+     modify it under the same terms as Perl itself.
+ 
+     Recent changes can be (re)viewed in the public GIT repository
+-    at http://repo.or.cz/w/GSM-Gnokii.git
++    at *** NEW REPO URL HERE ***
+     Feel free to clone your own copy:
+ 
+-     $ git clone http://repo.or.cz/r/GSM-Gnokii.git GSM-Gnokii
++     $ git clone NEW-REPO-URL-FOR-CLONE GSM-Gnokii
+ 
+     or get it as a tgz:
+ 
+      $ wget --output-document=GSM-Gnokii-git.tgz \
+-	   'http://repo.or.cz/w/GSM-Gnokii.git?a=snapshot;sf=tgz'
++	   'http://NEW-REPO-URL-HERE/GSM-Gnokii.git?a=snapshot;sf=tgz'
+ 
+ PREREQUISITES
+     perl-5.8.4
+diff --git a/lib/GSM/Gnokii.pm b/lib/GSM/Gnokii.pm
+index 2fbdac5..2226f30 100644
+--- a/lib/GSM/Gnokii.pm
++++ b/lib/GSM/Gnokii.pm
+@@ -14,7 +14,7 @@ our @ISA = qw(Exporter DynaLoader);
+ our %EXPORT_TAGS = ( all => [ qw( ) ] );
+ our @EXPORT_OK   = ( @{ $EXPORT_TAGS{all} } );
+ our @EXPORT      = qw( );
+-our $VERSION     = "0.09";
++our $VERSION     = "0.10";
+ 
+ bootstrap GSM::Gnokii $VERSION;
+ 
+diff --git a/sandbox/genMETA.pl b/sandbox/genMETA.pl
+index f741707..112124b 100755
+--- a/sandbox/genMETA.pl
++++ b/sandbox/genMETA.pl
+@@ -18,7 +18,9 @@ my $meta = genMETA->new (
+     verbose => $opt_v,
+     );
+ 
+-$meta->from_data (<DATA>);
++{   open my $mh, "<", "META.yml" or die "META.yml: $!\n";
++    $meta->from_data (do { local $/; <$mh> });
++    }
+ 
+ if ($check) {
+     $meta->check_encoding ();
+@@ -32,43 +34,3 @@ elsif ($opt_v) {
+ else {
+     $meta->fix_meta ();
+     }
+-
+-__END__
+---- #YAML:1.0
+-name:                    GSM-Gnokii
+-version:                 VERSION
+-abstract:                Perl API to libgnokii
+-license:                 perl
+-author:              
+-    - H.Merijn Brand <h.m.brand@xs4all.nl>
+-generated_by:            Author
+-distribution_type:       module
+-provides:
+-    GSM::Gnokii:
+-        file:            lib/GSM/Gnokii.pm
+-        version:         VERSION
+-requires:     
+-    perl:                5.008004
+-    Carp:                0
+-    DynaLoader:          0
+-    Data::Peek:          0.32
+-    JSON:                0
+-recommends:     
+-    perl:                5.016003
+-    Data::Peek:          0.39
+-configure_requires:
+-    ExtUtils::MakeMaker: 0
+-build_requires:
+-    Config:              0
+-test_requires:
+-    Test::Harness:       0
+-    Test::More:          0.88
+-    Test::NoWarnings:    0
+-test_recommends:
+-    Test::More:          0.98
+-resources:
+-    license:             http://dev.perl.org/licenses/
+-    repository:          http://repo.or.cz/w/GSM-Gnokii.git
+-meta-spec:
+-    version:             1.4
+-    url:                 http://module-build.sourceforge.net/META-spec-v1.4.html
+diff --git a/sandbox/genMETA.pm b/sandbox/genMETA.pm
+index 7cdf019..59ca1af 100644
+--- a/sandbox/genMETA.pm
++++ b/sandbox/genMETA.pm
+@@ -263,110 +263,7 @@ sub fix_meta
+ {
+     my $self = shift;
+ 
+-    # Convert to meta-spec version 2
+-    # licenses are lists now
+-    my $jsn = $self->{h};
+-    $jsn->{"meta-spec"} = {
+-	version	=> "2",
+-	url	=> "https://metacpan.org/module/CPAN::Meta::Spec?#meta-spec",
+-	};
+-    exists $jsn->{resources}{license} and
+-	$jsn->{resources}{license} = [ $jsn->{resources}{license} ];
+-    delete $jsn->{distribution_type};
+-    if (exists $jsn->{license}) {
+-	$jsn->{license} =~ s/^perl$/perl_5/;
+-	$jsn->{license} = [ $jsn->{license} ];
+-	}
+-    if (exists $jsn->{resources}{repository}) {
+-	my $url = $jsn->{resources}{repository};
+-	my $web = $url;
+-	$url =~ s{repo.or.cz/w/}{repo.or.cz/r/};
+-	$web =~ s{repo.or.cz/r/}{repo.or.cz/w/};
+-	$jsn->{resources}{repository} = {
+-	    type => "git",
+-	    web  => $web,
+-	    url  => $url,
+-	    };
+-	}
+-    foreach my $sct ("", "configure_", "build_", "test_") {
+-	(my $x = $sct || "runtime") =~ s/_$//;
+-	for (qw( requires recommends suggests )) {
+-	    exists $jsn->{"$sct$_"} and
+-		$jsn->{prereqs}{$x}{$_} = delete $jsn->{"$sct$_"};
+-	    }
+-	}
+-
+-    # optional features do not yet know about requires and/or recommends diirectly
+-    if (my $of = $jsn->{optional_features}) {
+-	foreach my $f (keys %$of) {
+-	    if (my $r = delete $of->{$f}{requires}) {
+-		#$jsn->{prereqs}{runtime}{recommends}{$_} //= $r->{$_} for keys %$r;
+-		$of->{$f}{prereqs}{runtime}{requires} = $r;
+-		}
+-	    if (my $r = delete $of->{$f}{recommends}) {
+-		#$jsn->{prereqs}{runtime}{recommends}{$_} //= $r->{$_} for keys %$r;
+-		$of->{$f}{prereqs}{runtime}{recommends} = $r;
+-		}
+-	    }
+-	}
+-
+-    $jsn = CPAN::Meta::Converter->new ($jsn)->convert (version => "2");
+-    $jsn->{generated_by} = "Author";
+-
+-    my @my = glob <*/META.yml> or croak "No META files";
+-    my $yf = $my[0];
+-    (my $jf = $yf) =~ s/yml$/json/;
+-    open my $jh, ">", $jf or croak "Cannot update $jf\n";
+-    print   $jh JSON::PP->new->utf8 (1)->pretty (1)->encode ($jsn);
+-    close   $jh;
+-
+-    # Now that 2.0 JSON is corrrect, create a 1.4 YAML back from the modified stuff
+-    my $yml = $jsn;
+-    # 1.4 does not know about test_*, move them to *
+-    if (my $tp = delete $yml->{prereqs}{test}) {
+-	foreach my $phase (keys %{$tp}) {
+-	    my $p = $tp->{$phase};
+-	    #DDumper { $phase => $p };
+-	    $yml->{prereqs}{runtime}{$phase}{$_} //= $p->{$_} for keys %{$p};
+-	    }
+-	}
+-
+-    # Optional features in 1.4 knows requires, but not recommends.
+-    # The Lancaster Consensus moves 2.0 optional recommends promote to
+-    # requires in 1.4
+-    if (my $of = $yml->{optional_features}) {
+-	foreach my $f (keys %$of) {
+-	    if (my $r = delete $of->{$f}{prereqs}{runtime}{recommends}) {
+-		$of->{$f}{requires} = $r;
+-		}
+-	    }
+-	}
+-    # runtime and test_requires are unknown as top-level in 1.4
+-    foreach my $phase (qw( xuntime test_requires )) {
+-	if (my $p = delete $yml->{$phase}) {
+-	    foreach my $f (keys %$p) {
+-		$yml->{$f}{$_} ||= $p->{$f}{$_} for keys %{$p->{$f}};
+-		}
+-	    }
+-	}
+-
+-    #DDumper $yml;
+-    # This does NOT create a correct YAML id the source does not comply!
+-    $yml = CPAN::Meta::Converter->new ($yml)->convert (version => "1.4");
+-    $yml->{requires}{perl} //= $jsn->{prereqs}{runtime}{requires}{perl}
+-			   //  $self->{h}{requires}{perl}
+-			   //  "";
+-    $yml->{build_requires} && !keys %{$yml->{build_requires}} and
+-	delete $yml->{build_requires};
+-    #DDumper $yml;
+-    #exit;
+-
+-    @my == 1 && open my $my, ">", $yf or croak "Cannot update $yf\n";
+-    print $my Dump $yml; # @{$self->{yml}};
+-    close $my;
+-
+-    chmod 0644, glob "*/META.*";
+-    unlink glob "MYMETA*";
++    # Do not change anything here anymore
+     } # fix_meta
+ 
+ 1;
+
+--------------1.8.4--
+
+
