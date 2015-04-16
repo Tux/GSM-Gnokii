@@ -6,7 +6,7 @@ use autodie;
 
 open my $fh, "<", "OPs.list";
 my %done = map { m/(\w+)/; ($1 => 0) } <$fh>;
-open my $xs, "<", "Gnokii.xs";
+open my $xs, "<", "../Gnokii.xs";
 while (<$xs>) {
     my @ops = (m/\b (GN_OP_\w+) \b/xg) or next;
     @done{@ops} = (1) x scalar @ops;
