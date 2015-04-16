@@ -99,8 +99,8 @@ static int _hv_getb (HV *hash, const char *key, int *b)
 #define hv_getb(hash,key,b)   _hv_getb (hash, key, &b)
 
 #define _hvstore(hash,key,sv) (void)hv_store (hash, key, strlen (key), sv, 0)
-#define hv_puts(hash,key,str) _hvstore (hash, key, newSVpv ((char *)(str), 0))
-#define hv_putS(hash,key,s,l) _hvstore (hash, key, newSVpv ((char *)(s),   l))
+#define hv_puts(hash,key,str) _hvstore (hash, key, newSVpv (str, 0))
+#define hv_putS(hash,key,s,l) _hvstore (hash, key, newSVpv (s,   l))
 #define hv_puti(hash,key,num) _hvstore (hash, key, newSViv (num))
 #define hv_putn(hash,key,num) _hvstore (hash, key, newSVnv (num))
 #define hv_putr(hash,key,svr) _hvstore (hash, key, newRV_inc ((SV *)(svr)))
@@ -1490,7 +1490,7 @@ GetProfiles (self, start, end)
 	p = newHV ();
 	hv_puti (p, "number",           i);
 	hv_puts (p, "name",             profile.name);
-	hv_puts (p, "defaultname",      profile.default_name);
+	hv_puti (p, "defaultname",      profile.default_name);
 
 	hv_puts (p, "call_alert",       gn_profile_callalert_type2str (profile.call_alert));
 	hv_puti (p, "ringtonenumber",   profile.ringtone);
